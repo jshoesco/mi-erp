@@ -1,0 +1,33 @@
+# --- Dependencias (LO MÁS IMPORTANTE) ---
+node_modules/
+package-lock.json   # Opcional: Algunos prefieren subirlo, otros no. Si trabajas solo, puedes ignorarlo.
+yarn.lock           # Si usaras yarn (no es tu caso, pero por si acaso)
+
+# --- Archivos de Producción/Build ---
+dist/
+build/
+
+# --- Logs y Errores ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- Sistema Operativo (Basura de Mac/Windows) ---
+.DS_Store
+Thumbs.db
+
+# --- Configuración de Entorno (SEGURIDAD CRÍTICA) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Editor de Código ---
+.vscode/
+.idea/
+
+# --- Firebase (Caché local de emuladores) ---
+.firebase/
+firebase-debug.log

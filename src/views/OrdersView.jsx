@@ -41,6 +41,7 @@ const OrdersView = () => {
     const [editingId, setEditingId] = useState(null);
     const [client, setClient] = useState({ nombre: '', telefono: '', direccion: '', ciudad: '', ciudad_entrega: '', es_acopio: false, estrategia: 'Directo', is_internal: false });
     const [cart, setCart] = useState([]);
+    const [swappingIndex, setSwappingIndex] = useState(null); // null = modo normal, número = índice a reemplazar
     const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
 
     // Logística
@@ -240,7 +241,52 @@ const OrdersView = () => {
         } catch (e) { notify("Error: " + e.message, "error"); }
     };
 
-    const addToCart = (product, sizeOverride = '') => { setCart(prev => [...prev, { sku: product.sku, modelo: product.modelo, imagen: product.imagen, precio: product.precio, unique_id: crypto.randomUUID(), cantidad: 1, total: product.precio, proveedor_nombre: providers.find(p => p.id === product.proveedor_uid)?.nombre, proveedor_uid: product.proveedor_uid, pago_parcial: 0, costo: product.costo, pago_proveedor: 0, talla: sizeOverride }]); setItemSearch(''); };
+    const addToCart = (product, sizeOverride = '') => { 
+        // CASO 1: ESTAMOS REEMPLAZANDO UN PRODUCTO (CORRECCIÓN DE ERROR)
+        if (swappingIndex !== null) {
+            setCart(prev => prev.map((item, i) => {
+                if (i === swappingIndex) {
+                    // Mantenemos: unique_id (vital para finanzas), pagos realizados y guías
+                    return {
+                        ...item, // Mantenemos la base
+                        sku: product.sku,
+                        modelo: product.modelo,
+                        imagen: product.imagen,
+                        precio: product.precio,
+                        costo: product.costo, // Actualizamos costos
+                        proveedor_nombre: providers.find(p => p.id === product.proveedor_uid)?.nombre,
+                        proveedor_uid: product.proveedor_uid,
+                        // Recalculamos total
+                        total: (Number(product.precio) * Number(item.cantidad))
+                    };
+                }
+                return item;
+            }));
+            notify("Producto sustituido. Pagos conservados.");
+            setSwappingIndex(null); // Volver a modo normal
+        } 
+        // CASO 2: AGREGANDO NUEVO (NORMAL)
+        else {
+            setCart(prev => [...prev, { 
+                sku: product.sku, 
+                modelo: product.modelo, 
+                imagen: product.imagen, 
+                precio: product.precio, 
+                unique_id: crypto.randomUUID(), 
+                cantidad: 1, 
+                total: product.precio, 
+                proveedor_nombre: providers.find(p => p.id === product.proveedor_uid)?.nombre, 
+                proveedor_uid: product.proveedor_uid, 
+                pago_parcial: 0, 
+                costo: product.costo, 
+                pago_proveedor: 0, 
+                talla: sizeOverride,
+                costo_envio_asignado: 0 
+            }]); 
+        }
+        setItemSearch(''); 
+    };
+
     const updateCartItem = (index, field, value) => { setCart(prev => prev.map((item, i) => { if (i === index) { const updated = { ...item, [field]: value }; if (field === 'cantidad' || field === 'precio') { updated.total = (Number(updated.precio) || 0) * (Number(updated.cantidad) || 1); } return updated; } return item; })); };
     const handleDeleteOrder = async (id) => confirmAction({ title: "Eliminar Pedido", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'pedidos', id)); notify("Eliminado"); } });
     
@@ -748,6 +794,8 @@ const OrdersView = () => {
                 isCustomMode={isCustomMode} setIsCustomMode={setIsCustomMode} itemSearch={itemSearch} setItemSearch={setItemSearch}
                 customItem={customItem} setCustomItem={setCustomItem} saveToInventory={saveToInventory} setSaveToInventory={setSaveToInventory}
                 handleCustomFile={handleCustomFile} handleCustomProvider={handleCustomProviderChange} createCustom={createAndAddProduct} uploadingCustom={uploading}
+                swappingIndex={swappingIndex}
+                setSwappingIndex={setSwappingIndex}
             />
 
             <GuideModal 

@@ -390,16 +390,21 @@ const OrdersView = () => {
     const openDelivery = (items) => { const total = items.reduce((sum, i) => sum + (Number(i.guia?.costo) || 0), 0); setDeliveryForm({ date: getToday(), items, costo_total: total, ya_pagado: !!items[0].guia?.anticipado }); setDeliveryModalOpen(true); };
     const openPayment = (items) => { 
         setBatchItemsCandidates(items);
-        const allIds = items.map(i => i.unique_id);
+        
+        // CAMBIO AQUÍ: Solo seleccionamos los que deben dinero
+        const allIds = items.filter(i => calculateItemDebt(i) > 0).map(i => i.unique_id);
         setSelectedBatchIds(allIds);
         
-        // CALCULO INICIAL DEL MONTO (CORRECCIÓN)
+        // CALCULO INICIAL DEL MONTO
         const initialAmounts = {};
         let initialTotal = 0;
         items.forEach(i => {
             const debt = calculateItemDebt(i);
-            initialAmounts[i.unique_id] = debt;
-            initialTotal += debt;
+            // Solo sumamos si hay deuda
+            if (debt > 0) {
+                initialAmounts[i.unique_id] = debt;
+                initialTotal += debt;
+            }
         });
         setIndividualAmounts(initialAmounts);
         setPaymentForm(prev => ({ ...prev, monto: initialTotal, metodo: '', transaction_id: '', imagen: '' }));

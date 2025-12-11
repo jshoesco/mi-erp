@@ -18,10 +18,21 @@ const ConfigView = () => {
     const [tab, setTab] = useState('providers');
     const { notify, confirmAction } = useUI();
 
-    // Estados de Formularios
+    // Estados de Formularios (Inicializados con strings vacíos para evitar undefined)
     const [provForm, setProvForm] = useState({ nombre: '', id_custom: '', contacto: '', lineas: [] });
     const [shipForm, setShipForm] = useState({ ciudad: '', tarifa: '', tiene_acopio: false });
-    const [cloudForm, setCloudForm] = useState({ cloud_name: '', upload_preset: '', cloudinary_folder: '', cloudinary_transaction_folder: '', api_key: '', api_secret: '', drive_folder_id: '' });
+    
+    // CORRECCIÓN 1: Inicialización robusta
+    const [cloudForm, setCloudForm] = useState({ 
+        cloud_name: '', 
+        upload_preset: '', 
+        cloudinary_folder: '', 
+        cloudinary_transaction_folder: '', 
+        api_key: '', 
+        api_secret: '', 
+        drive_folder_id: '' 
+    });
+    
     const [lineName, setLineName] = useState('');
     const [catIngreso, setCatIngreso] = useState('');
     const [catGasto, setCatGasto] = useState('');
@@ -29,7 +40,22 @@ const ConfigView = () => {
     const [finConfigData, setFinConfigData] = useState({ ingresos: [], gastos: [], methods: [] });
     const [anomForm, setAnomForm] = useState({ motivo: '', accion: 'Devolver a Proveedor' });
 
-    useEffect(() => { if (generalConfig.length) setCloudForm(generalConfig[0]); }, [generalConfig]);
+    // CORRECCIÓN 2: Cargar datos protegiendo contra undefined
+    useEffect(() => { 
+        if (generalConfig && generalConfig.length > 0) {
+            const data = generalConfig[0];
+            setCloudForm({
+                cloud_name: data.cloud_name || '',
+                upload_preset: data.upload_preset || '',
+                cloudinary_folder: data.cloudinary_folder || '',
+                cloudinary_transaction_folder: data.cloudinary_transaction_folder || '',
+                api_key: data.api_key || '',
+                api_secret: data.api_secret || '',
+                drive_folder_id: data.drive_folder_id || '' // Aquí estaba el error
+            });
+        }
+    }, [generalConfig]);
+
     useEffect(() => { if (financeConfig.length) setFinConfigData(financeConfig[0]); }, [financeConfig]);
 
     // --- FUNCIONES DE GUARDADO ---
@@ -40,7 +66,32 @@ const ConfigView = () => {
     const deleteProvider = (id) => confirmAction({ title: "Eliminar", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'proveedores', id)); notify("Eliminado"); } });
     const saveShipping = async () => { if (!shipForm.ciudad || !shipForm.tarifa) return notify("Incompleto", "error"); try { const payload = { ciudad: shipForm.ciudad, tarifa: Number(shipForm.tarifa), tiene_acopio: shipForm.tiene_acopio }; if (shipForm.id) await updateDoc(doc(db, 'tarifas_envios', shipForm.id), payload); else await addDoc(collection(db, 'tarifas_envios'), payload); setShipForm({ ciudad: '', tarifa: '', tiene_acopio: false }); notify("Guardado"); } catch (e) { notify(e.message, "error"); } };
     const deleteShipping = (id) => confirmAction({ title: "Eliminar", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'tarifas_envios', id)); notify("Eliminado"); } });
-    const saveGeneral = async () => { try { const payload = { cloud_name: cloudForm.cloud_name, upload_preset: cloudForm.upload_preset, cloudinary_folder: cloudForm.cloudinary_folder, cloudinary_transaction_folder: cloudForm.cloudinary_transaction_folder, api_key: cloudForm.api_key, api_secret: cloudForm.api_secret, drive_folder_id: cloudForm.drive_folder_id }; if (generalConfig.length) await updateDoc(doc(db, 'config_general', generalConfig[0].id), payload); else await addDoc(collection(db, 'config_general'), payload); notify("Guardado"); } catch (e) { notify(e.message, "error"); } };
+    
+    // CORRECCIÓN 3: Guardar datos asegurando strings vacíos
+    const saveGeneral = async () => { 
+        try { 
+            const payload = { 
+                cloud_name: cloudForm.cloud_name || '', 
+                upload_preset: cloudForm.upload_preset || '', 
+                cloudinary_folder: cloudForm.cloudinary_folder || '', 
+                cloudinary_transaction_folder: cloudForm.cloudinary_transaction_folder || '', 
+                api_key: cloudForm.api_key || '', 
+                api_secret: cloudForm.api_secret || '', 
+                drive_folder_id: cloudForm.drive_folder_id || '' 
+            }; 
+            
+            if (generalConfig && generalConfig.length > 0) {
+                await updateDoc(doc(db, 'config_general', generalConfig[0].id), payload); 
+            } else {
+                await addDoc(collection(db, 'config_general'), payload); 
+            }
+            notify("Configuración guardada correctamente"); 
+        } catch (e) { 
+            console.error(e);
+            notify("Error al guardar: " + e.message, "error"); 
+        } 
+    };
+
     const updateFinConfig = async (newData) => { try { if (financeConfig.length) await updateDoc(doc(db, 'config_finanzas', financeConfig[0].id), newData); else await addDoc(collection(db, 'config_finanzas'), newData); } catch (e) { notify(e.message, "error"); } };
     const addCategory = (type, val) => { if (!val) return; const list = type === 'ingreso' ? [...(finConfigData.ingresos || [])] : [...(finConfigData.gastos || [])]; if (!list.includes(val)) { list.push(val); updateFinConfig(type === 'ingreso' ? { ingresos: list } : { gastos: list }); } if (type === 'ingreso') setCatIngreso(''); else setCatGasto(''); };
     const removeCategory = (type, val) => { const list = type === 'ingreso' ? (finConfigData.ingresos || []) : (finConfigData.gastos || []); updateFinConfig(type === 'ingreso' ? { ingresos: list.filter(x => x !== val) } : { gastos: list.filter(x => x !== val) }); };
@@ -69,7 +120,7 @@ const ConfigView = () => {
     return (
         <div className="flex flex-col fade-in space-y-6 pb-24 md:pb-0 w-full">
             {/* NAVIGATION TABS */}
-            <div className="sticky top-0 bg-brand-light z-30 flex gap-2 border-b border-gray-200 pb-1 overflow-x-auto w-full scrollbar-hide pt-2">
+            <div className="sticky top-0 bg-[#f3f4f6] z-30 flex gap-2 border-b border-slate-200 pb-1 overflow-x-auto w-full scrollbar-hide pt-2">
                 {[
                     { id: 'providers', label: 'Proveedores', icon: 'Truck' },
                     { id: 'lines', label: 'Líneas', icon: 'Tag' },
@@ -98,10 +149,7 @@ const ConfigView = () => {
             {tab === 'lines' && (
                 <div className="max-w-lg mx-auto bg-white p-6 rounded-xl shadow-card border border-gray-100">
                     <h3 className="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2"><Icon name="Tag" className="text-brand-red"/> Gestión de Líneas</h3>
-                    <div className="flex gap-2 mb-6">
-                        <Input placeholder="Nueva Línea (Ej: Calzado)" value={lineName} onChange={e => setLineName(e.target.value)} />
-                        <Button onClick={saveLine} icon="Plus">Agregar</Button>
-                    </div>
+                    <div className="flex gap-2 mb-4"><Input placeholder="Nueva Línea (Ej: Calzado)" value={lineName} onChange={e => setLineName(e.target.value)} /><Button onClick={saveLine} icon="Plus">Agregar</Button></div>
                     <ul className="space-y-2 divide-y divide-gray-100">
                         {lines.map(l => (
                             <li key={l.id} className="flex justify-between items-center py-2 group">
@@ -282,11 +330,12 @@ const ConfigView = () => {
                     
                     <div className="flex flex-col md:flex-row gap-4 mb-8 bg-gray-50 p-5 rounded-xl border border-gray-200 items-end">
                         <div className="flex-1 w-full">
-                            <Input label="Motivo de Devolución" placeholder="Ej: No le gustó..." value={anomForm.motivo} onChange={e => setAnomForm({ ...anomForm, motivo: e.target.value })} />
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Motivo</label>
+                            <Input placeholder="Ej: Talla incorrecta..." value={anomForm.motivo} onChange={e => setAnomForm({ ...anomForm, motivo: e.target.value })} />
                         </div>
                         <div className="w-full md:w-56">
-                            <label className="text-xs font-bold text-gray-500 uppercase block mb-1.5">Acción Automática</label>
-                            <select className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-500 bg-white" value={anomForm.accion || 'Devolver a Proveedor'} onChange={e => setAnomForm({ ...anomForm, accion: e.target.value })}>
+                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1.5">Acción Automática</label>
+                            <select className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none focus:border-indigo-500 bg-white h-10" value={anomForm.accion || 'Devolver a Proveedor'} onChange={e => setAnomForm({ ...anomForm, accion: e.target.value })}>
                                 <option value="Devolver a Proveedor">Devolver a Proveedor</option>
                                 <option value="Stock (Revender)">Regresa a Stock</option>
                                 <option value="Desechar">Desechar / Pérdida</option>
@@ -302,13 +351,11 @@ const ConfigView = () => {
                         </div>
                         <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
                             {anomalyConfigs.map(c => (
-                                <div key={c.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors group">
-                                    <div className="font-medium text-gray-800">{c.motivo}</div>
+                                <div key={c.id} className="p-4 flex justify-between items-center hover:bg-slate-50 transition-colors group">
+                                    <div><div className="text-sm font-bold text-slate-800">{c.motivo}</div></div>
                                     <div className="flex items-center gap-4">
-                                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${c.accion?.includes('Stock') ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-red-50 text-brand-red border-red-100'}`}>
-                                            {c.accion}
-                                        </span>
-                                        <button onClick={() => deleteAnomaly(c.id)} className="text-gray-300 hover:text-brand-red transition-colors"><Icon name="Trash2" size={16} /></button>
+                                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${c.accion?.includes('Stock') ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-red-50 text-brand-red border-red-100'}`}>{c.accion}</span>
+                                        <button onClick={() => deleteAnomaly(c.id)} className="text-slate-400 hover:text-rose-500"><Icon name="Trash2" size={14} /></button>
                                     </div>
                                 </div>
                             ))}
@@ -323,12 +370,13 @@ const ConfigView = () => {
                 <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-card border border-gray-100">
                     <h3 className="font-bold mb-6 flex items-center gap-2 text-gray-800 text-lg"><Icon name="Cloud" className="text-indigo-500"/> Conexión a la Nube</h3>
                     <div className="space-y-5">
-                        <Input label="Cloudinary Cloud Name" value={cloudForm.cloud_name} onChange={e => setCloudForm({ ...cloudForm, cloud_name: e.target.value })} />
+                        <Input label="Cloud Name" value={cloudForm.cloud_name} onChange={e => setCloudForm({ ...cloudForm, cloud_name: e.target.value })} />
                         <Input label="Upload Preset" value={cloudForm.upload_preset} onChange={e => setCloudForm({ ...cloudForm, upload_preset: e.target.value })} />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input label="Folder Inventario" value={cloudForm.cloudinary_folder} onChange={e => setCloudForm({ ...cloudForm, cloudinary_folder: e.target.value })} />
                             <Input label="Folder Pagos" value={cloudForm.cloudinary_transaction_folder} onChange={e => setCloudForm({ ...cloudForm, cloudinary_transaction_folder: e.target.value })} />
                         </div>
+                        <Input label="Google Drive Folder ID" value={cloudForm.drive_folder_id} onChange={e => setCloudForm({ ...cloudForm, drive_folder_id: e.target.value })} />
                         <div className="pt-4 border-t border-gray-100">
                             <p className="text-xs text-gray-400 mb-3 uppercase font-bold tracking-widest">Zona de Peligro (API Keys)</p>
                             <div className="space-y-4">
@@ -340,7 +388,7 @@ const ConfigView = () => {
                     <Button onClick={saveGeneral} className="w-full mt-8 bg-brand-dark h-12">Guardar Configuración</Button>
                     
                     <div className="border-t border-gray-100 pt-6 mt-6">
-                        <Button onClick={handleLogout} variant="danger" className="w-full h-12" icon="LogOut">Cerrar Sesión del Sistema</Button>
+                        <Button onClick={handleLogout} variant="danger" className="w-full h-12 md:h-10" icon="LogOut">Cerrar Sesión del Sistema</Button>
                     </div>
                 </div>
             )}

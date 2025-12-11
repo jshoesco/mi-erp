@@ -1,14 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
+import useCollection from '../hooks/useCollection'; // Importación directa para estrategia espejo
 import { useUI } from '../context/UIContext';
-import { db, doc, writeBatch, collection, addDoc, updateDoc, deleteDoc, getDoc } from '../lib/firebase';
+import { db, doc, writeBatch, collection, addDoc, updateDoc, deleteDoc } from '../lib/firebase';
 import { formatCurrency, normalizeText, uploadToCloudinary } from '../lib/utils';
 
 // Componentes UI
 import Button from '../components/Button';
 import Icon, { Spinner } from '../components/Icon';
-import SafeImg from '../components/SafeImg';
-import Modal from '../components/Modal';
+import Modal from '../components/Modal'; // Importación de Modal base
 
 // Modales
 import GuideModal from '../components/modals/GuideModal';
@@ -21,10 +21,14 @@ import OrderFormModal from '../components/modals/OrderFormModal';
 
 const OrdersView = () => {
     // 1. DATOS GLOBALES
-    const { orders, products, shipping, providers, financeConfig, anomalyConfigData, generalConfig, loading } = useData();
+    const { orders, products, shipping, providers, financeConfig, anomalyConfigData, loading } = useData();
     const { notify, confirmAction } = useUI();
     
-    const cloudConfig = generalConfig?.[0] || {};
+    // --- ESTRATEGIA ESPEJO: Cargar config directamente igual que en Finanzas ---
+    const { data: configDirecta } = useCollection('config_general');
+    const cloudConfig = configDirecta?.[0] || {};
+    // --------------------------------------------------------------------------
+
     const financeMethods = financeConfig?.methods || [];
 
     // 2. ESTADOS
@@ -60,12 +64,13 @@ const OrdersView = () => {
     const [clientPayForm, setClientPayForm] = useState({ metodo: '', monto: '', transaction_id: '', imagen: '' });
     const [currentOrder, setCurrentOrder] = useState(null);
 
-    // Novedades y Reventa
+    // Novedades
     const [anomalyModalOpen, setAnomalyModalOpen] = useState(false);
     const [anomalyItems, setAnomalyItems] = useState([]);
     const [selectedAnomalyIds, setSelectedAnomalyIds] = useState([]);
     const [anomalyDetails, setAnomalyDetails] = useState({});
 
+    // Reventa
     const [resellModalOpen, setResellModalOpen] = useState(false);
     const [resellItem, setResellItem] = useState(null);
     const [resellForm, setResellForm] = useState({ precio: '', cliente: '', tipo_entrega: 'Personal', ciudad: '', metodo: '', transaction_id: '', imagen: '' });
@@ -90,7 +95,7 @@ const OrdersView = () => {
     const isBankGuide = financeMethods.find(m => m.name === guideForm.metodo)?.isBank;
     const isBankResell = financeMethods.find(m => m.name === resellForm.metodo)?.isBank;
 
-    // Cálculo de Deuda (Lógica Blindada: Costo + Envío Asignado - Pagado)
+    // Cálculo de Deuda
     const calculateItemDebt = (item) => Math.max(0, ((Number(item.costo)||0) + (Number(item.costo_envio_asignado)||0)) - (Number(item.pago_proveedor)||0));
 
     const clientHistory = useMemo(() => {
@@ -211,29 +216,27 @@ const OrdersView = () => {
     const updateCartItem = (index, field, value) => { setCart(prev => prev.map((item, i) => { if (i === index) { const updated = { ...item, [field]: value }; if (field === 'cantidad' || field === 'precio') { updated.total = (Number(updated.precio) || 0) * (Number(updated.cantidad) || 1); } return updated; } return item; })); };
     const handleDeleteOrder = async (id) => confirmAction({ title: "Eliminar Pedido", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'pedidos', id)); notify("Eliminado"); } });
     
-    const handleCustomFile = async (file) => { if (!file || !cloudConfig.cloud_name) return notify("Falta config Cloudinary", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `PROD-${Date.now()}`); setCustomItem(prev => ({ ...prev, imagen: res.secure_url })); } catch (e) { notify(e.message, "error"); } setUploading(false); };
+    // --- MANEJO DE ARCHIVOS (RESTAURADO) ---
+    const handleCustomFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `PROD-${Date.now()}`); setCustomItem(prev => ({ ...prev, imagen: res.secure_url })); } catch (e) { notify(e.message, "error"); } setUploading(false); };
     const handleCustomProviderChange = (e) => { const provId = e.target.value; const provData = providers.find(p => p.id === provId); if (provData) { const random = Math.floor(1000 + Math.random() * 9000); setCustomItem(prev => ({ ...prev, proveedor_uid: provId, sku: `${provData.id_custom}${random}` })); } else { setCustomItem(prev => ({ ...prev, proveedor_uid: provId })); } };
     const createAndAddProduct = async () => { if (!customItem.nombre && !customItem.modelo) return notify("Falta Nombre o Modelo", "error"); if (!customItem.precio) return notify("Falta Precio", "error"); setUploading(true); try { const newProduct = { sku: customItem.sku || `MANUAL-${Date.now().toString().slice(-4)}`, nombre: customItem.nombre || '', modelo: customItem.modelo || 'Generico', marca: customItem.marca || 'Generica', precio: Number(customItem.precio) || 0, costo: Number(customItem.costo) || 0, ganancia: (Number(customItem.precio) || 0) - (Number(customItem.costo) || 0), imagen: customItem.imagen || '', genero: customItem.genero || 'Unisex', proveedor_uid: customItem.proveedor_uid || '', compartido: false, status: 'Activo', fecha: getToday(), created_at: new Date().toISOString() }; let productToAdd = newProduct; if (saveToInventory) { const docRef = await addDoc(collection(db, 'productos'), newProduct); productToAdd = { ...newProduct, id: docRef.id }; notify("Producto creado y agregado"); } else { productToAdd = { ...newProduct, id: `GHOST-${Date.now()}` }; notify("Agregado al pedido (No guardado en catálogo)"); } addToCart(productToAdd, customItem.talla); setCustomItem({ sku: '', nombre: '', modelo: '', marca: '', precio: '', costo: '', proveedor_uid: '', imagen: '', genero: 'Unisex', talla: '' }); setIsCustomMode(false); } catch (e) { notify("Error: " + e.message, "error"); } setUploading(false); };
+
+    // Funciones de carga para modales específicos
+    const handleGuideFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `GUIDE-PAY-${Date.now()}`); setGuideForm(prev => ({ ...prev, imagen: res.secure_url })); notify("Comprobante subido"); } catch (e) { notify(e.message, "error"); } setUploading(false); };
+    const handleDeliveryFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `DELIVERY-PAY-${Date.now()}`); setDeliveryForm(prev => ({ ...prev, imagen: res.secure_url })); notify("Comprobante subido"); } catch (e) { notify(e.message, "error"); } setUploading(false); };
+    const handlePaymentFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `PAY-TX-${Date.now()}`); setPaymentForm(prev => ({ ...prev, imagen: res.secure_url })); notify("Comprobante subido"); } catch (e) { notify(e.message, "error"); } setUploading(false); };
+    const handleClientPayFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `PAY-CLIENT-${Date.now()}`); setClientPayForm(prev => ({ ...prev, imagen: res.secure_url })); notify("Comprobante subido"); } catch (e) { notify(e.message, "error"); } setUploading(false); };
+    const handleResellFile = async (file) => { if (!cloudConfig.cloud_name) return notify("Falta config Cloudinary en Ajustes", "error"); setUploading(true); try { const res = await uploadToCloudinary(file, cloudConfig, `RESELL-${Date.now()}`); setResellForm(prev => ({ ...prev, imagen: res.secure_url })); notify("Comprobante subido"); } catch (e) { notify(e.message, "error"); } setUploading(false); };
 
     // --- ACCIONES MASIVAS ---
     const toggleOrderSelection = (id) => { if (selectedOrderIds.includes(id)) setSelectedOrderIds(prev => prev.filter(x => x !== id)); else setSelectedOrderIds(prev => [...prev, id]); };
     const handleBulkOrderDelete = async () => { if (selectedOrderIds.length === 0) return; confirmAction({ title: `Eliminar ${selectedOrderIds.length} Pedidos`, message: "Esta acción es irreversible. ¿Seguro?", onConfirm: async () => { try { const batch = writeBatch(db); selectedOrderIds.forEach(id => { const ref = doc(db, 'pedidos', id); batch.delete(ref); }); await batch.commit(); notify(`${selectedOrderIds.length} pedidos eliminados`); setSelectedOrderIds([]); } catch (e) { notify("Error: " + e.message, "error"); } } }); };
 
-    // --- LÓGICA DE PAGOS (LA QUE FALTABA) ---
+    // --- LÓGICA DE PAGOS ---
     const handleIndividualAmountChange = (uniqueId, rawValue) => { 
         const clean = rawValue.replace(/\./g, ''); 
         if (!/^\d*$/.test(clean)) return; 
         setIndividualAmounts(prev => ({ ...prev, [uniqueId]: clean })); 
-    };
-
-    const handlePaymentFile = async (file) => { 
-        if (!file || !cloudConfig.cloud_name) return notify("Falta config Cloudinary", "error"); 
-        setUploading(true); 
-        try { 
-            const res = await uploadToCloudinary(file, cloudConfig, `PAY-TX-${Date.now()}`); 
-            setPaymentForm(prev => ({ ...prev, imagen: res.secure_url })); 
-        } catch (e) { notify(e.message, "error"); } 
-        setUploading(false); 
     };
 
     const submitBatchPayment = async () => {
@@ -264,10 +267,6 @@ const OrdersView = () => {
                     const idx = order.items.findIndex(i => i.unique_id === alloc.item_unique_id);
                     if (idx !== -1) {
                         order.items[idx].pago_proveedor = (Number(order.items[idx].pago_proveedor) || 0) + alloc.amount;
-                        if (!order.items[idx].costo && products.length > 0) {
-                            const pBase = products.find(p => p.sku === order.items[idx].sku);
-                            if (pBase) order.items[idx].costo = pBase.costo;
-                        }
                     }
                 });
                 const allPaid = order.items.every(it => (Number(it.pago_proveedor) || 0) >= ((Number(it.costo) || 0) + (Number(it.costo_envio_asignado) || 0)));
@@ -353,7 +352,7 @@ const OrdersView = () => {
             const amountPerItem = (!deliveryForm.ya_pagado && Number(deliveryForm.costo_total) > 0) ? (Number(deliveryForm.costo_total) / deliveryForm.items.length) : 0;
             
             if (amountPerItem > 0) {
-                // CORREGIDO: Se eliminó la duplicidad de 'metodo'
+                // CORREGIDO: Se eliminó el 'metodo' duplicado al final
                 batch.set(doc(collection(db, 'finanzas')), { 
                     tipo: 'Gasto', 
                     categoria: 'Envío', 
@@ -391,24 +390,18 @@ const OrdersView = () => {
     const openDelivery = (items) => { const total = items.reduce((sum, i) => sum + (Number(i.guia?.costo) || 0), 0); setDeliveryForm({ date: getToday(), items, costo_total: total, ya_pagado: !!items[0].guia?.anticipado }); setDeliveryModalOpen(true); };
     const openPayment = (items) => { 
         setBatchItemsCandidates(items);
-        
-        // 1. Pre-seleccionar todos
         const allIds = items.map(i => i.unique_id);
         setSelectedBatchIds(allIds);
         
-        // 2. CORRECCIÓN: Pre-cargar los montos con la deuda actual
+        // CALCULO INICIAL DEL MONTO (CORRECCIÓN)
         const initialAmounts = {};
         let initialTotal = 0;
-        
         items.forEach(i => {
             const debt = calculateItemDebt(i);
-            initialAmounts[i.unique_id] = debt; // Guardamos el número limpio
+            initialAmounts[i.unique_id] = debt;
             initialTotal += debt;
         });
-
         setIndividualAmounts(initialAmounts);
-        
-        // 3. Actualizar el total del formulario visualmente de una vez
         setPaymentForm(prev => ({ ...prev, monto: initialTotal, metodo: '', transaction_id: '', imagen: '' }));
         
         setBatchPayModalOpen(true); 
@@ -417,7 +410,6 @@ const OrdersView = () => {
     // --- OTROS ---
     const submitClientPayment = async () => { if (!clientPayForm.monto || !clientPayForm.metodo) return notify("Faltan datos", "error"); const amount = Number(clientPayForm.monto); try { await addDoc(collection(db, 'finanzas'), { tipo: 'Ingreso', categoria: 'Venta', metodo: clientPayForm.metodo, monto: amount, concepto: `Cobro Pedido #${currentOrder.id_visual}`, fecha: new Date().toISOString(), pedido_id: currentOrder.id_visual }); const newTotalPaid = (currentOrder.pago_cliente || 0) + amount; const newStatus = newTotalPaid >= currentOrder.total ? 'Completado' : currentOrder.estado; await updateDoc(doc(db, 'pedidos', currentOrder.id), { pago_cliente: newTotalPaid, estado: newStatus }); notify("Cobro registrado"); setClientPayModalOpen(false); } catch (e) { notify("Error: " + e.message, "error"); } };
     const openClientPayModal = (order) => { setCurrentOrder(order); const remaining = (order.total || 0) - (order.pago_cliente || 0); setClientPayForm({ metodo: '', monto: remaining > 0 ? remaining : 0, transaction_id: '', imagen: '' }); setClientPayModalOpen(true); };
-    const handleClientPayFile = async (file) => { if (!file || !cloudConfig.cloud_name) return notify("Falta config Cloudinary", "error"); setUploadingPayment(true); try { const res = await uploadToCloudinary(file, cloudConfig, `PAY-CLIENT-${Date.now()}`).then(r=>setClientPayForm(p=>({...p, imagen:r.secure_url})))} catch (e) { notify(e.message, "error"); } setUploadingPayment(false); };
     
     // Novedades y Reventa
     const openAnomalyModal = (order) => { setCurrentOrder(order); setAnomalyItems(order.items || []); setSelectedAnomalyIds([]); setAnomalyDetails({}); setAnomalyModalOpen(true); };
@@ -428,20 +420,17 @@ const OrdersView = () => {
     const undoReturn = async (item) => { confirmAction({ title: "Deshacer Devolución", message: `El producto ${item.modelo} volverá a estar activo en el pedido. ¿Confirmar?`, onConfirm: async () => { try { const batch = writeBatch(db); const orderRef = doc(db, 'pedidos', item.orderId); const orderSnap = await getDoc(orderRef); if (orderSnap.exists()) { const orderData = orderSnap.data(); const updatedItems = orderData.items.map(it => { if (it.unique_id === item.unique_id) { const { devolucion, ...rest } = it; return rest; } return it; }); const hasGuide = updatedItems.some(it => it.guia && it.guia.numero); const newState = hasGuide ? 'Enviado' : 'En Despacho'; batch.update(orderRef, { items: updatedItems, estado: newState }); await batch.commit(); notify("Devolución reversada"); } } catch (e) { notify("Error: " + e.message, "error"); } } }); };
 
     const openResellModal = (item) => { setResellItem(item); setResellForm({ precio: '', cliente: '', tipo_entrega: 'Personal', ciudad: '', metodo: '', transaction_id: '', imagen: '' }); setResellModalOpen(true); };
-    const handleResellFile = async (file) => { if (!file || !cloudConfig.cloud_name) return notify("Falta config Cloudinary", "error"); setUploadingGuide(true); try { const res = await uploadToCloudinary(file, cloudConfig, `REVENTA-${Date.now()}`).then(r=>setResellForm(p=>({...p, imagen:r.secure_url})))} catch (e) { notify(e.message, "error"); } setUploadingGuide(false); };
     const submitResell = async () => { if(!resellForm.precio || !resellForm.cliente) return notify("Faltan datos", "error"); try { const batch = writeBatch(db); const newOrder = { cliente: { nombre: resellForm.cliente, ciudad_entrega: resellForm.ciudad || 'Local', telefono: '0000000000', direccion: 'Reventa', es_acopio: false, estrategia: 'Directo', is_internal: false }, items: [{ ...resellItem, precio: Number(resellForm.precio), total: Number(resellForm.precio), devolucion: null, guia: null, unique_id: crypto.randomUUID(), pago_proveedor: 0, costo_envio_asignado: 0 }], total: Number(resellForm.precio), pago_cliente: resellForm.tipo_entrega === 'Personal' ? Number(resellForm.precio) : 0, estado: resellForm.tipo_entrega === 'Personal' ? 'Completado' : 'Pendiente', fecha: new Date().toISOString(), id_visual: Date.now().toString().slice(-6), estrategia: 'Directo' }; const newOrderRef = doc(collection(db, 'pedidos')); batch.set(newOrderRef, newOrder); if(resellForm.tipo_entrega === 'Personal') { const finRef = doc(collection(db, 'finanzas')); batch.set(finRef, { tipo: 'Ingreso', categoria: 'Reventa', metodo: resellForm.metodo, monto: Number(resellForm.precio), concepto: `Reventa Producto ${resellItem.modelo}`, transaction_id: resellForm.transaction_id || '', imagen: resellForm.imagen || '', fecha: new Date().toISOString(), pedido_id: newOrder.id_visual }); } const oldOrderRef = doc(db, 'pedidos', resellItem.orderId); const oldOrderSnap = await getDoc(oldOrderRef); if(oldOrderSnap.exists()){ const oldData = oldOrderSnap.data(); const updatedOldItems = oldData.items.map(it => { if(it.unique_id === resellItem.unique_id) { return { ...it, devolucion: { ...it.devolucion, estado: 'Revendido' } }; } return it; }); batch.update(oldOrderRef, { items: updatedOldItems }); } await batch.commit(); notify("Producto revendido"); setResellModalOpen(false); } catch(e) { notify("Error: " + e.message, "error"); } };
     const undoDelivery = async (groupItems) => { confirmAction({ title: "Reversar Entrega", message: "El pedido volverá a estado 'Enviado'. Si registraste un pago, elimínalo manualmente en Finanzas. ¿Continuar?", onConfirm: async () => { try { const batch = writeBatch(db); const updatesByOrder = {}; groupItems.forEach(item => { if (!updatesByOrder[item.orderId]) { const order = orders.find(o => o.id === item.orderId); if (order) updatesByOrder[item.orderId] = JSON.parse(JSON.stringify(order)); } const currentOrder = updatesByOrder[item.orderId]; if (currentOrder && currentOrder.items[item.itemIndex]) { delete currentOrder.items[item.itemIndex].fecha_entrega; } }); Object.keys(updatesByOrder).forEach(orderId => { const ref = doc(db, 'pedidos', orderId); batch.update(ref, { items: updatesByOrder[orderId].items }); }); await batch.commit(); notify("Entrega reversada"); } catch (e) { notify("Error: " + e.message, "error"); } } }); };
 
-    // --- RENDERIZADORES ---
-    // A. COLUMNA DE VENTAS (Diseño Premium)
-    // Agregamos el parámetro 'key' al final
-    const renderSalesColumn = (title, items, colorClass, key) => (
-        <div key={key} className={`min-w-[320px] bg-white rounded-xl flex flex-col h-full border border-gray-200 shadow-sm ${colorClass}`}>
+// A. COLUMNA DE VENTAS (Diseño Premium)
+    // CAMBIO: Agregamos 'index' como cuarto parámetro
+    const renderSalesColumn = (title, items, colorClass, index) => (
+        <div key={index} className={`min-w-[320px] bg-white rounded-xl flex flex-col h-full border border-gray-200 shadow-sm ${colorClass}`}>
             <div className="p-4 font-bold text-gray-800 flex justify-between items-center bg-gray-50/90 backdrop-blur-sm rounded-t-xl sticky top-0 border-b border-gray-200 z-10">
                 <span className="uppercase tracking-wide text-xs">{title}</span>
                 <span className="bg-brand-dark text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">{items.length}</span>
             </div>
-            {/* ... el resto de la función sigue igual ... */}
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
                 {items.map(order => {
                     const providerGroups = groupItemsByProvider(order.items || []);
@@ -454,7 +443,7 @@ const OrdersView = () => {
                                 <div><div className="font-bold text-gray-900">{order.cliente?.nombre}</div><div className="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><Icon name="MapPin" size={12}/> {order.cliente?.ciudad_entrega}</div></div>
                                 <div className="text-right"><div className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">#{order.id_visual}</div></div>
                             </div>
-                            <div className="space-y-2 mb-3">{providerGroups.map(g => (<div key={g.id} className="text-xs bg-gray-50 p-2 rounded-lg border border-gray-100"><div className="flex justify-between font-bold text-gray-700 mb-1"><span>{g.name}</span>{g.todosPagados && <Icon name="CheckCircle" size={12} className="text-emerald-500"/>}</div>{g.items.map((it, i) => <div key={i} className={`truncate flex items-center gap-1 ${it.devolucion ? 'text-brand-red line-through' : 'text-gray-500'}`}><span className="w-1 h-1 rounded-full bg-gray-300"></span> {it.cantidad}x {it.modelo} {it.devolucion && <span className="text-[9px] bg-red-100 text-brand-red px-1 rounded">NOV</span>}</div>)}</div>))}</div>
+                            <div className="space-y-2 mb-3">{providerGroups.map(g => (<div key={g.id} className="text-xs bg-gray-50 p-2 rounded-lg border border-gray-100"><div className="flex justify-between font-bold text-gray-700 mb-1"><span>{g.name}</span>{g.todosPagados && <Icon name="CheckCircle" size={12} className="text-emerald-500"/>}</div>{g.items.map((it, i) => <div key={i} className={`truncate flex items-center gap-1 ${it.devolucion ? 'text-brand-red line-through' : 'text-gray-500'}`}><span className="w-1 h-1 rounded-full bg-slate-300"></span> {it.cantidad}x {it.modelo} {it.devolucion && <span className="text-[9px] bg-red-100 text-brand-red px-1 rounded">NOV</span>}</div>)}</div>))}</div>
                             <div className="pt-2 border-t border-gray-100 flex justify-between items-center"><span className="text-sm font-bold text-brand-dark">{formatCurrency(order.total)}</span><div className="flex gap-1">{(order.items || []).some(i => i.fecha_entrega) && (<button onClick={(e)=>{e.stopPropagation(); openAnomalyModal(order)}} className="p-1.5 text-brand-red hover:bg-red-50 rounded-lg transition-colors" title="Reportar Devolución"><Icon name="AlertTriangle" size={14}/></button>)}<button onClick={(e)=>{e.stopPropagation(); handleDeleteOrder(order.id)}} className="p-1.5 text-gray-400 hover:text-brand-red hover:bg-red-50 rounded-lg transition-colors"><Icon name="Trash2" size={14}/></button></div></div>
                         </div>
                     );
@@ -463,7 +452,6 @@ const OrdersView = () => {
         </div>
     );
 
-    // B. TARJETA KANBAN LOGÍSTICA (Agrupada)
     const renderKanbanCard = (group, columnType) => {
         const subOrders = {};
         group.items.forEach(item => {
@@ -473,41 +461,27 @@ const OrdersView = () => {
             if(calculateItemDebt(item) > 0) subOrders[key].hasDebt = true;
         });
 
-        // Título dinámico
-        const isGrouped = Object.keys(subOrders).length > 1;
-        const cardTitle = isGrouped ? `${Object.keys(subOrders).length} Pedidos Unificados` : group.mainClientName;
-
         return (
             <div key={group.id} className={`bg-white p-3 rounded-xl shadow-sm border hover:shadow-md transition-shadow relative border-l-4 ${group.totalDebt > 100 ? 'border-l-brand-red border-gray-200' : 'border-l-emerald-500 border-gray-200'}`}>
-                
-                {/* Cabecera Enviado */}
                 {columnType === 'shipped' && (
                     <div className="bg-emerald-50 -mx-3 -mt-3 mb-3 p-2 border-b border-emerald-100 rounded-t-lg flex justify-between items-center" onClick={(e)=>e.stopPropagation()}>
                         <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1"><Icon name="Truck" size={10}/> {group.guideInfo?.numero || 'S/G'}</span>
                         <div className="flex items-center gap-2">
                             <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(group.guideInfo?.numero || ''); notify("Copiado", "info"); }} className="p-1 hover:bg-white rounded"><Icon name="Copy" size={12} className="text-emerald-700"/></button>
-                            {/* CORREGIDO: openGuide en lugar de openGuideModalForItems */}
                             <button onClick={(e) => { e.stopPropagation(); openGuide(group.items); }} className="p-1 hover:bg-white rounded"><Icon name="Edit2" size={12} className="text-emerald-700"/></button>
-                            {/* CORREGIDO: openDelivery en lugar de openDeliveryModal */}
                             <button onClick={(e) => { e.stopPropagation(); openDelivery(group.items); }} className="p-1 hover:bg-white rounded"><Icon name="CheckSquare" size={12} className="text-emerald-700"/></button>
                         </div>
                     </div>
                 )}
-                {/* Cabecera Entregado */}
                 {columnType === 'delivered' && (
                     <div className="bg-gray-100 -mx-3 -mt-3 mb-3 p-2 border-b border-gray-200 rounded-t-lg flex justify-between items-center">
                         <span className="text-[10px] font-bold text-gray-600 flex items-center gap-1"><Icon name="CheckCircle" size={10}/> {group.items[0]?.fecha_entrega}</span>
                         <button onClick={(e)=>{e.stopPropagation(); undoDelivery(group.items)}} className="text-brand-red hover:bg-red-50 p-1 rounded" title="Reversar"><Icon name="RotateCcw" size={12}/></button>
                     </div>
                 )}
-
-                {/* Info Logística */}
                 <div className="flex justify-between items-start mb-3">
                     <div>
-                        <div className="font-bold text-sm text-gray-800 flex items-center gap-1">
-                            {isGrouped ? <Icon name="Users" size={14} className="text-indigo-600"/> : <Icon name="User" size={14} className="text-gray-400"/>} 
-                            {cardTitle}
-                        </div>
+                        <div className="font-bold text-sm text-gray-800 flex items-center gap-1"><Icon name="Truck" size={12} className="text-gray-400"/> {group.provName}</div>
                         <div className="text-xs text-gray-500 font-medium flex items-center gap-2 mt-1">
                             <span className="flex items-center gap-1"><Icon name="MapPin" size={10}/> {group.city}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${group.isAcopio ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>{group.estrategia}</span>
@@ -515,34 +489,26 @@ const OrdersView = () => {
                     </div>
                     {!group.isAcopio && columnType !== 'shipped' && columnType !== 'delivered' && (<button onClick={(e)=>{e.stopPropagation(); openLinkModal(group)}} className="text-gray-300 hover:text-indigo-600 p-1 transition-colors" title="Unificar Envío"><Icon name="Link" size={14}/></button>)}
                 </div>
-
-                {/* Lista de Productos */}
                 <div className="space-y-2">
                     {Object.values(subOrders).map((sub) => (
                         <div key={sub.visualId} className={`rounded-lg p-2 border ${sub.hasDebt ? 'bg-red-50/50 border-red-200 border-dashed' : 'bg-gray-50 border-gray-100'}`}>
-                            {isGrouped && (
-                                <div className="flex justify-between items-center mb-1 pb-1 border-b border-black/5">
-                                    <div className="text-xs font-bold text-gray-700">{sub.client} <span className="font-normal opacity-50 ml-1">#{sub.visualId}</span></div>
-                                    {sub.hasDebt && <span className="text-[9px] font-bold text-brand-red flex items-center gap-0.5"><Icon name="AlertCircle" size={10}/> Pagar</span>}
-                                </div>
-                            )}
+                            <div className="flex justify-between items-center mb-1 pb-1 border-b border-black/5">
+                                <div className="text-xs font-bold text-gray-700">{sub.client} <span className="font-normal opacity-50 ml-1">#{sub.visualId}</span></div>
+                                {sub.hasDebt && <span className="text-[9px] font-bold text-brand-red flex items-center gap-0.5"><Icon name="AlertCircle" size={10}/> Pagar</span>}
+                            </div>
                             <div className="space-y-1">
                                 {sub.items.map((it, i) => (
                                     <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
                                         <div className="flex-1 min-w-0">
                                             <div className="truncate font-bold text-gray-800">{it.modelo}</div>
                                             <div className="text-[10px] text-gray-500 flex flex-wrap gap-1 items-center">
-                                                {/* --- NUEVO: ETIQUETA DE PROVEEDOR --- */}
                                                 <span className="bg-orange-100 text-orange-800 px-1 rounded font-bold uppercase text-[9px]">{group.provName}</span>
-                                                
                                                 {it.talla && <span className="bg-white border border-gray-200 px-1 rounded text-gray-600">T{it.talla}</span>}
                                                 <span>{it.sku}</span>
                                             </div>
                                         </div>
                                         {calculateItemDebt(it) > 0 ? (
-                                            <span className="font-mono text-brand-red text-[10px] font-bold ml-2">
-                                                ${formatCurrency(calculateItemDebt(it)).replace('$','')}
-                                            </span>
+                                            <span className="font-mono text-brand-red text-[10px] font-bold ml-2">${formatCurrency(calculateItemDebt(it)).replace('$','')}</span>
                                         ) : (
                                             <Icon name="Check" size={14} className="text-emerald-500 ml-2"/>
                                         )}
@@ -552,17 +518,13 @@ const OrdersView = () => {
                         </div>
                     ))}
                 </div>
-
-                {/* Acciones */}
                 <div className="mt-3 pt-3 border-t border-gray-100">
                     {columnType === 'pending' && (
                         <>
                             <div className="mb-2 flex justify-between items-center bg-red-50 px-2 py-1.5 rounded text-brand-red text-xs font-bold border border-red-100"><span>Deuda Total:</span><span>{formatCurrency(group.totalDebt)}</span></div>
-                            {/* CORREGIDO: openPayment en lugar de openBatchPayModal */}
                             <button onClick={(e)=>{e.stopPropagation(); openPayment(group.items)}} className="w-full py-2 bg-brand-dark text-white text-xs font-bold rounded-lg hover:bg-gray-800 flex items-center justify-center gap-2 shadow-sm transition-all"><Icon name="DollarSign" size={14}/> Registrar Pago</button>
                         </>
                     )}
-                    {/* CORREGIDO: openGuide en lugar de openGuideModalForItems */}
                     {columnType === 'ready' && <button onClick={(e)=>{e.stopPropagation(); openGuide(group.items)}} className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 shadow-sm transition-all"><Icon name="Truck" size={14}/> Asignar Guía</button>}
                 </div>
             </div>
@@ -652,6 +614,7 @@ const OrdersView = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
+                                {/* Unimos todo lo que no está entregado ni devuelto */}
                                 {[...kanbanData.pending, ...kanbanData.ready, ...kanbanData.shipped].map((group, i) => (
                                     group.items.map((it, idx) => (
                                         <tr key={`${group.id}-${idx}`} className="hover:bg-gray-50 group">
@@ -661,7 +624,7 @@ const OrdersView = () => {
                                             </td>
                                             <td className="p-4">
                                                 <div className="font-bold text-gray-700">{it.modelo}</div>
-                                                <div className="text-xs text-gray-500">{it.sku} (T{it.talla})</div>
+                                                <div className="text-xs text-gray-500 flex items-center gap-2">{it.sku} {it.talla && <span className="bg-gray-100 px-1 rounded">T{it.talla}</span>} {it.costo_envio_asignado > 0 && <Icon name="Truck" size={12} className="text-brand-red"/>}</div>
                                             </td>
                                             <td className="p-4 text-xs text-gray-600">
                                                 <div className="font-bold">{group.city}</div>
@@ -765,24 +728,11 @@ const OrdersView = () => {
             />
 
             <DeliveryModal 
-                isOpen={deliveryModalOpen} 
-                onClose={()=>setDeliveryModalOpen(false)}
-                form={deliveryForm} 
-                setForm={setDeliveryForm}
+                isOpen={deliveryModalOpen} onClose={()=>setDeliveryModalOpen(false)}
+                form={deliveryForm} setForm={setDeliveryForm}
                 onSave={saveDelivery}
-                financeMethods={financeMethods} 
-                // AQUÍ ESTABA EL ERROR: Ahora conectamos la función real
-                onFileSelect={(f) => {
-                    // Usamos la misma función de subida de guía o creamos una local rápida
-                    setUploading(true); 
-                    uploadToCloudinary(f, cloudConfig, `DELIVERY-${Date.now()}`)
-                        .then(r => {
-                            setDeliveryForm(p => ({...p, imagen: r.secure_url}));
-                            setUploading(false);
-                        })
-                        .catch(() => setUploading(false));
-                }} 
-                uploading={uploading}
+                financeMethods={financeMethods} isBank={false}
+                onFileSelect={(f)=>uploadToCloudinary(f, cloudConfig, `DELIVERY-${Date.now()}`).then(r=>setDeliveryForm(p=>({...p, imagen:r.secure_url})))} uploading={false}
             />
 
             <PaymentModal 
@@ -797,6 +747,7 @@ const OrdersView = () => {
                 individualAmounts={individualAmounts} onAmountChange={(id,val)=>setIndividualAmounts(p=>({...p,[id]:val}))}
                 form={paymentForm} setForm={setPaymentForm}
                 financeMethods={financeMethods} isBank={isBankProv}
+                onFileSelect={handlePaymentFile} uploading={uploading}
                 onSave={submitBatchPayment}
             />
 

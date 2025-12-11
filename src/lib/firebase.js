@@ -23,13 +23,15 @@ import {
   onAuthStateChanged 
 } from "firebase/auth";
 
+// ... (imports anteriores siguen igual)
+
 const firebaseConfig = {
-    apiKey: "AIzaSyBaAlVJUSUcybQg-8eSM4n8vljURSgvubo",
-    authDomain: "erp-v3-3a93c.firebaseapp.com",
-    projectId: "erp-v3-3a93c",
-    storageBucket: "erp-v3-3a93c.firebasestorage.app",
-    messagingSenderId: "779319215390",
-    appId: "1:779319215390:web:1ab5f01acb87c8a678f50f"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Inicializar Firebase

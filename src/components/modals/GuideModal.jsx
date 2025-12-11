@@ -5,15 +5,16 @@ import Icon from '../Icon';
 import { Input, NumberInput } from '../Inputs';
 import SmartSelect from '../SmartSelect';
 import ImageUploader from '../ImageUploader';
-import { formatCurrency } from '../../lib/utils'; // Asegúrate que la ruta sea correcta (../../lib/utils)
+// Asegúrate que esta ruta exista, si te da error cámbiala a '../lib/utils' dependiendo de tu estructura
+import { formatCurrency } from '../../lib/utils'; 
 
 const GuideModal = ({ 
     isOpen, 
     onClose, 
     form, 
     setForm, 
-    items, // Lista completa de items del pedido (targetItems)
-    selectedIds, // IDs de los items seleccionados
+    items, 
+    selectedIds, 
     toggleSelectAll, 
     toggleSelection, 
     searchText, 
@@ -26,7 +27,6 @@ const GuideModal = ({
     uploading 
 }) => {
     
-    // Filtrar visualmente los items
     const visibleItems = items.filter(it => 
         `${it.modelo} ${it.clientName} ${it.orderVisualId}`.toLowerCase().includes(searchText.toLowerCase())
     );
@@ -49,7 +49,6 @@ const GuideModal = ({
                         </button>
                     </div>
 
-                    {/* Buscador interno */}
                     <div className="relative mb-3">
                         <div className="absolute left-3 top-2.5 text-gray-400"><Icon name="Search" size={14}/></div>
                         <input 
@@ -60,7 +59,6 @@ const GuideModal = ({
                         />
                     </div>
 
-                    {/* Lista con Scroll */}
                     <div className="max-h-48 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
                         {visibleItems.map((it, i) => { 
                             const isSelected = selectedIds.includes(it.unique_id); 
@@ -130,20 +128,22 @@ const GuideModal = ({
                             />
                         </div>
                         
-                        {/* Selector de Método (Solo si es anticipado y hay costo) */}
+                        {/* Selector de Método - CORREGIDO AQUÍ */}
                         {form.anticipado && Number(form.costo) > 0 && (
                             <div className="md:col-span-2 animate-fade-in">
                                 <SmartSelect 
                                     value={form.metodo} 
                                     onChange={e => setForm({...form, metodo:e.target.value})} 
                                     options={financeMethods} 
-                                    placeholder="Método de Pago" 
+                                    placeholder="Método de Pago"
+                                    // ESTAS DOS LÍNEAS ARREGLAN EL PROBLEMA VISUAL:
+                                    displayProp="name" 
+                                    valueProp="name"
                                 />
                             </div>
                         )}
                     </div>
 
-                    {/* Subida de Imagen (Solo si es Banco) */}
                     {form.anticipado && isBank && (
                         <div className="pt-2 animate-fade-in">
                             <ImageUploader 

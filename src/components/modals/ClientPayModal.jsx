@@ -54,6 +54,8 @@ const ClientPayModal = ({
                         <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Método</label>
                         <SmartSelect 
                             label="" 
+                            displayProp="name" 
+                            valueProp="name"
                             value={form.metodo} 
                             onChange={e => setForm({ ...form, metodo: e.target.value })} 
                             options={financeMethods} 

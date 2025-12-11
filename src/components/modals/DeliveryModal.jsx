@@ -55,6 +55,8 @@ const DeliveryModal = ({
                                 <div className="animate-fade-in space-y-2">
                                     <SmartSelect 
                                         label="Método de Pago (Gasto)" 
+                                        displayProp="name" 
+                                        valueProp="name"
                                         value={form.metodo} 
                                         onChange={e => setForm({...form, metodo: e.target.value})} 
                                         options={financeMethods} 

@@ -1,17 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // Importamos useEffect
 import Modal from '../Modal';
 import Button from '../Button';
 import Icon from '../Icon';
-import { Input, NumberInput } from '../Inputs';
+import { Input } from '../Inputs';
 import SmartSelect from '../SmartSelect';
 import ImageUploader from '../ImageUploader';
 import { formatCurrency } from '../../lib/utils';
 
+// Helper local para limpiar números (quita puntos y deja solo números)
+const cleanNumber = (val) => {
+    if (!val) return 0;
+    return Number(val.toString().replace(/\./g, '').replace(/\D/g, '')) || 0;
+};
+
+// Helper local para formatear mientras escribes (miles con punto)
+const formatRaw = (val) => {
+    if (!val) return '';
+    return val.toString().replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
 const PaymentModal = ({ 
     isOpen, 
     onClose, 
-    candidates, // batchItemsCandidates
-    selectedIds, // selectedBatchIds
+    candidates, 
+    selectedIds, 
     toggleSelectAll, 
     toggleSelection, 
     searchText, 
@@ -27,19 +39,34 @@ const PaymentModal = ({
     onSave 
 }) => {
     
-    // Filtrado visual
+    // --- NUEVO: CALCULADORA AUTOMÁTICA ---
+    // Cada vez que cambias un monto individual o seleccionas/deseleccionas algo, esto se ejecuta
+    useEffect(() => {
+        if (!isOpen) return;
+        
+        let total = 0;
+        selectedIds.forEach(id => {
+            // Sumamos el valor limpio (sin puntos)
+            total += cleanNumber(individualAmounts[id]);
+        });
+
+        // Actualizamos el formulario con el nuevo total
+        setForm(prev => ({ ...prev, monto: total }));
+        
+    }, [selectedIds, individualAmounts, isOpen, setForm]);
+    // --------------------------------------
+
     const visibleItems = candidates.filter(it => 
         `${it.modelo} ${it.clientName} ${it.sku}`.toLowerCase().includes(searchText.toLowerCase())
     );
 
-    // Lógica para el botón de "Seleccionar Visibles"
     const areAllVisibleSelected = visibleItems.length > 0 && visibleItems.every(it => selectedIds.includes(it.unique_id));
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Registrar Pago Proveedor">
             <div className="space-y-5">
                 
-                {/* SECCIÓN 1: SELECCIÓN DE DEUDAS */}
+                {/* SECCIÓN 1: SELECCIÓN Y EDICIÓN */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
                     <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-200">
                         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Detalle de Deuda</label>
@@ -51,7 +78,6 @@ const PaymentModal = ({
                         </button>
                     </div>
                     
-                    {/* Buscador interno */}
                     <div className="relative mb-3">
                         <div className="absolute left-3 top-2.5 text-gray-400"><Icon name="Search" size={14}/></div>
                         <input 
@@ -62,13 +88,11 @@ const PaymentModal = ({
                         />
                     </div>
 
-                    {/* Lista con Scroll */}
                     <div className="max-h-56 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
                         {visibleItems.map((it, i) => { 
                             const isSelected = selectedIds.includes(it.unique_id); 
                             const debt = Math.max(0, (Number(it.costo)||0) - (Number(it.pago_proveedor)||0)); 
                             
-                            // Ocultar si no hay deuda y no está seleccionado
                             if(debt <= 0 && !isSelected) return null; 
                             
                             return (
@@ -90,21 +114,24 @@ const PaymentModal = ({
                                     <div className="flex-1 min-w-0">
                                         <div className="font-bold text-sm text-gray-800 truncate">{it.modelo}</div>
                                         <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            <span className="bg-orange-100 text-orange-800 px-1 rounded font-bold uppercase">{it.proveedor_nombre}</span>
                                             <span className="font-mono">#{it.orderVisualId}</span>
-                                            {it.talla && <span className="bg-gray-100 px-1 rounded text-gray-600">T{it.talla}</span>}
-                                            <span className="truncate max-w-[100px]">• {it.clientName}</span>
                                         </div>
                                     </div>
 
-                                    {/* Input de monto individual */}
+                                    {/* CAMPO EDITABLE DE MONTO */}
                                     {isSelected ? (
                                         <input 
                                             type="text" 
                                             inputMode="numeric" 
                                             className="w-24 text-right text-sm font-mono font-bold border border-indigo-300 rounded px-2 py-1 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-200 outline-none text-indigo-700 bg-indigo-50" 
-                                            placeholder={formatCurrency(debt)} 
-                                            value={individualAmounts[it.unique_id] || ''} 
-                                            onChange={(e) => onAmountChange(it.unique_id, e.target.value)} 
+                                            placeholder="$0" 
+                                            // Usamos el helper local formatRaw para mostrar puntos de miles
+                                            value={individualAmounts[it.unique_id] ? formatRaw(individualAmounts[it.unique_id]) : ''} 
+                                            onChange={(e) => {
+                                                // Permitir escribir y borrar
+                                                onAmountChange(it.unique_id, e.target.value);
+                                            }} 
                                             onClick={(e)=>e.stopPropagation()} 
                                         />
                                     ) : (
@@ -117,7 +144,7 @@ const PaymentModal = ({
                     </div>
                 </div>
 
-                {/* SECCIÓN 2: TOTALES Y MÉTODO */}
+                {/* SECCIÓN 2: TOTALES */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-slate-900 text-white p-4 rounded-xl text-center shadow-lg">
                         <label className="text-[10px] font-bold uppercase opacity-70 block mb-1">Total a Pagar</label>
@@ -131,11 +158,13 @@ const PaymentModal = ({
                             onChange={e => setForm({ ...form, metodo: e.target.value })} 
                             options={financeMethods} 
                             placeholder="Seleccionar..." 
+                            displayProp="name" // Importante para que se vea el texto
+                            valueProp="name"
                         />
                     </div>
                 </div>
 
-                {/* SECCIÓN 3: COMPROBANTE BANCARIO */}
+                {/* SECCIÓN 3: COMPROBANTE */}
                 {isBank && (
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3 animate-fade-in">
                         <Input 
@@ -153,7 +182,6 @@ const PaymentModal = ({
                     </div>
                 )}
 
-                {/* BOTONES */}
                 <div className="pt-2 flex justify-end gap-3 border-t border-gray-100">
                     <Button variant="secondary" onClick={onClose}>Cancelar</Button>
                     <Button onClick={onSave} disabled={uploading || selectedIds.length === 0} className="bg-indigo-600 hover:bg-indigo-700 shadow-lg">

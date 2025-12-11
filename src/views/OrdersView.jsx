@@ -21,8 +21,18 @@ import OrderFormModal from '../components/modals/OrderFormModal';
 
 const OrdersView = () => {
     // 1. DATOS GLOBALES
-    const { orders, products, shipping, providers, financeConfig, anomalyConfigData, loading } = useData();
-    const { notify, confirmAction } = useUI();
+    const { 
+        orders, 
+        products, 
+        shipping, 
+        providers, 
+        financeConfig, 
+        anomalyConfigData, 
+        loading,
+        // --- AGREGAR ESTOS DOS ---
+        finanzas,      // Vital para actualizar pagos viejos
+        generalConfig  // Vital para subir fotos
+    } = useData();    const { notify, confirmAction } = useUI();
     
     // --- ESTRATEGIA ESPEJO: Cargar config directamente igual que en Finanzas ---
     const { data: configDirecta } = useCollection('config_general');
@@ -205,6 +215,7 @@ const OrdersView = () => {
     const submitOrder = async () => {
         if (!client.nombre || cart.length === 0) return notify("Faltan datos obligatorios", "error");
         
+        // 1. Preparar los datos limpios del pedido
         const cleanItems = cart.map(i => ({ 
             sku: i.sku || 'GENERICO', 
             modelo: i.modelo || 'Sin Modelo', 
@@ -220,11 +231,11 @@ const OrdersView = () => {
             guia: i.guia || null, 
             talla: i.talla || '', 
             unique_id: i.unique_id || crypto.randomUUID(), 
-            costo_envio_asignado: 0 
+            costo_envio_asignado: i.costo_envio_asignado || 0 
         }));
 
         const payload = { 
-            cliente: client, // <--- CORRECCIÓN AQUÍ (Asignar estado 'client' a campo 'cliente')
+            cliente: client, 
             items: cleanItems, 
             total: cleanItems.reduce((s, i) => s + i.total, 0), 
             pago_cliente: editingId ? (orders.find(o => o.id === editingId)?.pago_cliente || 0) : 0, 
@@ -235,9 +246,53 @@ const OrdersView = () => {
         };
 
         try { 
-            if (editingId) await updateDoc(doc(db, 'pedidos', editingId), payload); 
-            else await addDoc(collection(db, 'pedidos'), payload); 
-            setModalOpen(false); setCart([]); setEditingId(null); notify("Pedido guardado exitosamente"); 
+            // INICIAMOS UN LOTE DE ESCRITURA (BATCH)
+            const batch = writeBatch(db);
+
+            // 2. Agendar actualización del Pedido
+            if (editingId) {
+                const orderRef = doc(db, 'pedidos', editingId);
+                batch.update(orderRef, payload);
+            } else {
+                const newOrderRef = doc(collection(db, 'pedidos'));
+                batch.set(newOrderRef, payload);
+            }
+
+            // 3. SINCRONIZACIÓN FORZADA CON FINANZAS
+            // Si estamos editando, buscamos pagos viejos y actualizamos nombres
+            if (editingId && finanzas.length > 0) {
+                // Filtramos todas las transacciones que tienen que ver con este pedido
+                const transaccionesRelacionadas = finanzas.filter(f => 
+                    f.allocations && f.allocations.some(a => a.order_doc_id === editingId)
+                );
+
+                transaccionesRelacionadas.forEach(tx => {
+                    let huboCambiosEnTx = false;
+                    
+                    const nuevasAllocations = tx.allocations.map(alloc => {
+                        // Buscamos si el item de este pago existe en el carrito actual (por ID único)
+                        const itemEnCarrito = cleanItems.find(it => it.unique_id === alloc.item_unique_id);
+                        
+                        // Si encontramos el item y el nombre es diferente, lo actualizamos
+                        if (itemEnCarrito && itemEnCarrito.modelo !== alloc.item_name) {
+                            huboCambiosEnTx = true;
+                            return { ...alloc, item_name: itemEnCarrito.modelo }; // <--- AQUÍ SE ACTUALIZA EL NOMBRE
+                        }
+                        return alloc;
+                    });
+
+                    // Si hubo cambios en esta transacción, la agendamos en el lote
+                    if (huboCambiosEnTx) {
+                        const txRef = doc(db, 'finanzas', tx.id);
+                        batch.update(txRef, { allocations: nuevasAllocations });
+                    }
+                });
+            }
+
+            // 4. EJECUTAR TODO AL TIEMPO
+            await batch.commit(); 
+            
+            setModalOpen(false); setCart([]); setEditingId(null); notify("Pedido actualizado y sincronizado"); 
         } catch (e) { notify("Error: " + e.message, "error"); }
     };
 
@@ -783,8 +838,8 @@ const OrdersView = () => {
                 client={client} setClient={setClient} cart={cart} setCart={setCart}
                 
                 // --- CORRECCIÓN AQUÍ: Usar los nombres que el modal espera (date, setDate) ---
-                date={orderDate} 
-                setDate={setOrderDate} 
+                orderDate={orderDate} 
+                setOrderDate={setOrderDate}
                 // -----------------------------------------------------------------------------
                 
                 onSave={submitOrder}

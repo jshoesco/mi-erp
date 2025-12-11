@@ -15,7 +15,10 @@ export const UIProvider = ({ children }) => {
 
     // Función para mostrar notificaciones
     const notify = (message, type = 'success') => {
-        const id = Date.now();
+        // CORRECCIÓN: Agregamos Math.random() para asegurar que la llave sea única
+        // aunque ocurran dos notificaciones en el mismo milisegundo.
+        const id = Date.now() + Math.random(); 
+        
         setToasts(prev => [...prev, { id, message, type }]);
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
     };

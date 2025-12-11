@@ -765,11 +765,24 @@ const OrdersView = () => {
             />
 
             <DeliveryModal 
-                isOpen={deliveryModalOpen} onClose={()=>setDeliveryModalOpen(false)}
-                form={deliveryForm} setForm={setDeliveryForm}
+                isOpen={deliveryModalOpen} 
+                onClose={()=>setDeliveryModalOpen(false)}
+                form={deliveryForm} 
+                setForm={setDeliveryForm}
                 onSave={saveDelivery}
-                financeMethods={financeMethods} isBank={false}
-                onFileSelect={()=>{}} uploading={false}
+                financeMethods={financeMethods} 
+                // AQUÍ ESTABA EL ERROR: Ahora conectamos la función real
+                onFileSelect={(f) => {
+                    // Usamos la misma función de subida de guía o creamos una local rápida
+                    setUploading(true); 
+                    uploadToCloudinary(f, cloudConfig, `DELIVERY-${Date.now()}`)
+                        .then(r => {
+                            setDeliveryForm(p => ({...p, imagen: r.secure_url}));
+                            setUploading(false);
+                        })
+                        .catch(() => setUploading(false));
+                }} 
+                uploading={uploading}
             />
 
             <PaymentModal 

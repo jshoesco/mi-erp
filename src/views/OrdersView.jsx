@@ -202,14 +202,42 @@ const OrdersView = () => {
     const handleCityChange = (e) => { const val = e.target.value; const cityData = shipping.find(s => s.ciudad === val); if(cityData) setClient(prev => ({...prev, ciudad_entrega: val, es_acopio: cityData.tiene_acopio, estrategia: cityData.tiene_acopio ? 'Acopio' : 'Directo'})); else setClient(prev => ({...prev, ciudad_entrega: val})); };
 
     const submitOrder = async () => {
-        if (!client.nombre || cart.length === 0) return notify("Faltan datos", "error");
-        const cleanItems = cart.map(i => ({ sku: i.sku || 'GENERICO', modelo: i.modelo || 'Sin Modelo', imagen: i.imagen || '', precio: Number(i.precio) || 0, costo: Number(i.costo) || 0, cantidad: Number(i.cantidad) || 1, total: Number(i.total) || 0, proveedor_nombre: i.proveedor_nombre || 'Externo', proveedor_uid: i.proveedor_uid || 'externo', pago_parcial: Number(i.pago_parcial) || 0, pago_proveedor: Number(i.pago_proveedor) || 0, guia: i.guia || null, talla: i.talla || '', unique_id: i.unique_id || crypto.randomUUID(), costo_envio_asignado: 0 }));
-        const payload = { cliente, items: cleanItems, total: cleanItems.reduce((s, i) => s + i.total, 0), pago_cliente: editingId ? (orders.find(o=>o.id===editingId)?.pago_cliente||0) : 0, estado: 'Pendiente', fecha: orderDate, id_visual: editingId ? (orders.find(o=>o.id===editingId)?.id_visual) : Date.now().toString().slice(-6), estrategia: client.estrategia };
+        if (!client.nombre || cart.length === 0) return notify("Faltan datos obligatorios", "error");
+        
+        const cleanItems = cart.map(i => ({ 
+            sku: i.sku || 'GENERICO', 
+            modelo: i.modelo || 'Sin Modelo', 
+            imagen: i.imagen || '', 
+            precio: Number(i.precio) || 0, 
+            costo: Number(i.costo) || 0, 
+            cantidad: Number(i.cantidad) || 1, 
+            total: Number(i.total) || 0, 
+            proveedor_nombre: i.proveedor_nombre || 'Externo', 
+            proveedor_uid: i.proveedor_uid || 'externo', 
+            pago_parcial: Number(i.pago_parcial) || 0, 
+            pago_proveedor: Number(i.pago_proveedor) || 0, 
+            guia: i.guia || null, 
+            talla: i.talla || '', 
+            unique_id: i.unique_id || crypto.randomUUID(), 
+            costo_envio_asignado: 0 
+        }));
+
+        const payload = { 
+            cliente: client, // <--- CORRECCIÓN AQUÍ (Asignar estado 'client' a campo 'cliente')
+            items: cleanItems, 
+            total: cleanItems.reduce((s, i) => s + i.total, 0), 
+            pago_cliente: editingId ? (orders.find(o => o.id === editingId)?.pago_cliente || 0) : 0, 
+            estado: editingId ? (orders.find(o => o.id === editingId)?.estado || 'Pendiente') : 'Pendiente', 
+            fecha: orderDate, 
+            id_visual: editingId ? (orders.find(o => o.id === editingId)?.id_visual) : Date.now().toString().slice(-6), 
+            estrategia: client.estrategia || 'Directo' 
+        };
+
         try { 
-            if(editingId) await updateDoc(doc(db, 'pedidos', editingId), payload); 
+            if (editingId) await updateDoc(doc(db, 'pedidos', editingId), payload); 
             else await addDoc(collection(db, 'pedidos'), payload); 
-            setModalOpen(false); setCart([]); setEditingId(null); notify("Pedido guardado"); 
-        } catch(e) { notify(e.message, "error"); }
+            setModalOpen(false); setCart([]); setEditingId(null); notify("Pedido guardado exitosamente"); 
+        } catch (e) { notify("Error: " + e.message, "error"); }
     };
 
     const addToCart = (product, sizeOverride = '') => { setCart(prev => [...prev, { sku: product.sku, modelo: product.modelo, imagen: product.imagen, precio: product.precio, unique_id: crypto.randomUUID(), cantidad: 1, total: product.precio, proveedor_nombre: providers.find(p => p.id === product.proveedor_uid)?.nombre, proveedor_uid: product.proveedor_uid, pago_parcial: 0, costo: product.costo, pago_proveedor: 0, talla: sizeOverride }]); setItemSearch(''); };
@@ -707,7 +735,13 @@ const OrdersView = () => {
             <OrderFormModal 
                 isOpen={modalOpen} onClose={()=>setModalOpen(false)} isEditing={!!editingId}
                 client={client} setClient={setClient} cart={cart} setCart={setCart}
-                orderDate={orderDate} setOrderDate={setOrderDate} onSave={submitOrder}
+                
+                // --- CORRECCIÓN AQUÍ: Usar los nombres que el modal espera (date, setDate) ---
+                date={orderDate} 
+                setDate={setOrderDate} 
+                // -----------------------------------------------------------------------------
+                
+                onSave={submitOrder}
                 handlePhoneChange={handlePhoneChange} clientHistory={clientHistory} shippingOptions={shipping} handleCityChange={handleCityChange}
                 toggleInternal={toggleInternalOrder} productsList={products} providersList={providers}
                 addToCart={addToCart} updateCartItem={updateCartItem} removeFromCart={(i)=>setCart(cart.filter((_,idx)=>idx!==i))}

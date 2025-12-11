@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import SafeImg from '../components/SafeImg'; // Arriba
 import useCollection from '../hooks/useCollection';
 import { useUI } from '../context/UIContext';
 import { db, doc, writeBatch, collection, addDoc, updateDoc, deleteDoc } from '../lib/firebase';
@@ -208,7 +209,7 @@ const InventoryView = () => {
                                     </td>
                                     <td className="p-4">
                                         <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                            <img src={p.imagen || 'https://via.placeholder.com/40'} className="w-full h-full object-contain" alt={p.modelo} />
+                                            <SafeImg src={p.imagen || 'https://via.placeholder.com/40'} className="w-full h-full object-contain" alt={p.modelo} />
                                         </div>
                                     </td>
                                     <td className="p-4 font-mono font-bold text-gray-600 group-hover:text-brand-red transition-colors">{p.sku}</td>
@@ -312,7 +313,7 @@ const InventoryView = () => {
                         <div key={p.id} className="relative border rounded-xl hover:bg-gray-50 cursor-pointer bg-white shadow-sm transition-all group">
                             <div className="p-3 flex gap-4 items-center" onClick={() => setCompareProduct(p)}>
                                 <div className="relative">
-                                    <img src={p.imagen} className="w-12 h-12 object-cover rounded-lg bg-gray-100" />
+                                    <SafeImg src={p.imagen} className="w-12 h-12 object-cover rounded-lg bg-gray-100" />
                                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-md"><Icon name="Search" size={10} className="text-brand-red" /></div>
                                 </div>
                                 <div className="flex-1 text-sm">
@@ -341,14 +342,14 @@ const InventoryView = () => {
                             <div className="text-center opacity-60">
                                 <span className="text-xs font-bold text-gray-500 uppercase mb-2 block tracking-wider">Registrado (Anterior)</span>
                                 <div className="h-64 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 mb-3">
-                                    <img src={compareProduct.imagen} className="w-full h-full object-contain mix-blend-multiply" />
+                                    <SafeImg src={compareProduct.imagen} className="w-full h-full object-contain mix-blend-multiply" />
                                 </div>
                                 <p className="font-mono font-bold text-gray-800">{compareProduct.sku}</p>
                             </div>
                             <div className="text-center relative">
                                 <span className="text-xs font-bold text-emerald-600 uppercase mb-2 block tracking-wider">Nuevo Ingreso</span>
                                 <div className="h-64 bg-white rounded-xl flex items-center justify-center border-2 border-emerald-400 shadow-xl mb-3 relative z-10">
-                                    <img src={form.imagen || 'https://via.placeholder.com/150?text=Sin+Imagen'} className="w-full h-full object-contain" />
+                                    <SafeImg src={form.imagen || 'https://via.placeholder.com/150?text=Sin+Imagen'} className="w-full h-full object-contain" />
                                 </div>
                                 <p className="font-bold text-emerald-600">Nuevo Producto</p>
                             </div>

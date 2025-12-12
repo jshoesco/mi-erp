@@ -12,15 +12,12 @@ const SmartSelect = ({
     onCreate = null 
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    // Corrección 1: Asegurar que query nunca sea undefined/null
     const [query, setQuery] = useState(''); 
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const wrapperRef = useRef(null);
 
-    // Detectar si las opciones son strings simples o objetos
     const isStringArray = Array.isArray(options) && options.length > 0 && typeof options[0] === 'string';
 
-    // Sincronizar valor externo con el texto del input
     useEffect(() => {
         if (value !== null && value !== undefined && value !== '') {
             if (isStringArray) {
@@ -30,8 +27,11 @@ const SmartSelect = ({
                 if (selected) {
                     setQuery(String(selected[displayProp] || ''));
                 } else {
-                    // Si no encuentra el objeto (ej: valor inicial que no está en la lista), limpia
-                    setQuery('');
+                    // Si el valor no está en la lista (ej: nuevo ingreso), mantenemos el valor visual si coincide con el prop value, 
+                    // o lo dejamos vacío si no. Para inputs controlados a veces es mejor no limpiar si no es necesario.
+                    // En este caso, para SmartSelect estricto, si no está en la lista, mostramos vacío o el valor crudo.
+                     // Estrategia: Si no encuentra match, asumimos que el valor externo es lo que se debe mostrar (útil para edición)
+                    setQuery(''); 
                 }
             }
         } else {
@@ -39,22 +39,17 @@ const SmartSelect = ({
         }
     }, [value, options, isStringArray, valueProp, displayProp]);
 
-    // Filtrar opciones (BLINDADO contra errores de toLowerCase)
     const filteredOptions = useMemo(() => {
         if (!options) return [];
-        // Si no está abierto y no hay query que filtre, devolver todo (o nada si prefieres)
-        // Aquí devolvemos todo para que al abrir se vea la lista completa si no escribes nada
         if (!query && isOpen) return options;
         if (!query && !isOpen) return options;
 
         return options.filter(opt => {
             const text = isStringArray ? opt : opt[displayProp];
-            // Corrección 2: Verificar que text exista antes de usar toLowerCase
             return text && String(text).toLowerCase().includes(query.toLowerCase());
         });
     }, [options, query, isOpen, isStringArray, displayProp]);
 
-    // Manejo de Teclado
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -71,21 +66,17 @@ const SmartSelect = ({
             }
         } else if (e.key === 'Escape') {
             setIsOpen(false);
-            // Revertir al valor seleccionado si cancela
-            // (Opcional, por ahora solo cierra)
         }
     };
 
     const selectOption = (opt) => {
         const val = isStringArray ? opt : opt[valueProp];
         const text = isStringArray ? opt : opt[displayProp];
-        
         setQuery(String(text || ''));
         onChange({ target: { value: val } });
         setIsOpen(false);
     };
 
-    // Cerrar al hacer clic fuera
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -106,8 +97,6 @@ const SmartSelect = ({
                     onChange={(e) => {
                         setQuery(e.target.value);
                         setIsOpen(true);
-                        // Opcional: Si quieres que escribiendo se limpie el valor seleccionado
-                        // onChange({ target: { value: '' } }); 
                     }}
                     onFocus={() => setIsOpen(true)}
                     onKeyDown={handleKeyDown}
@@ -119,7 +108,8 @@ const SmartSelect = ({
             </div>
 
             {isOpen && (
-                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto divide-y divide-gray-50 animate-fade-in">
+                // AQUÍ ESTÁ EL CAMBIO: mt-1 para separar la lista del input
+                <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto divide-y divide-gray-50 animate-fade-in top-full left-0">
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map((opt, i) => {
                             const text = isStringArray ? opt : opt[displayProp];

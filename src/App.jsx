@@ -10,7 +10,8 @@ import InventoryView from './views/InventoryView';
 import FinanzasView from './views/FinanzasView';
 import ConfigView from './views/ConfigView';
 import ShareView from './views/ShareView';
-import AlertsView from './views/AlertsView'; // <--- 1. IMPORTAMOS LA NUEVA VISTA
+import AlertsView from './views/AlertsView'; 
+import QuotesView from './views/QuotesView';
 
 // COMPONENTES UI
 import Icon, { Spinner } from './components/Icon';
@@ -54,6 +55,7 @@ const App = () => {
                         
                         {/* NAVEGACIÓN */}
                         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+                            <MenuButton icon="HelpCircle" label="Cotizaciones" active={view === 'quotes'} isOpen={isSidebarOpen} onClick={() => setView('quotes')} />
                             <MenuButton icon="ShoppingCart" label="Pedidos" active={view === 'orders'} isOpen={isSidebarOpen} onClick={() => setView('orders')} />
                             <MenuButton icon="Package" label="Inventario" active={view === 'inventory'} isOpen={isSidebarOpen} onClick={() => setView('inventory')} />
                             <MenuButton icon="Banknote" label="Finanzas" active={view === 'finanzas'} isOpen={isSidebarOpen} onClick={() => setView('finanzas')} />
@@ -111,6 +113,7 @@ const App = () => {
                         {/* VISTAS */}
                         <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6 relative w-full">
                             <div className="max-w-7xl mx-auto h-full flex flex-col">
+                                {view === 'quotes' && <QuotesView />}
                                 {view === 'orders' && <OrdersView />}
                                 {view === 'inventory' && <InventoryView />}
                                 {view === 'finanzas' && <FinanzasView />}
@@ -125,11 +128,12 @@ const App = () => {
                         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-20 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-2 safe-area-bottom">
                             <MobileButton icon="ShoppingCart" label="Pedidos" active={view === 'orders'} onClick={() => setView('orders')} />
                             <MobileButton icon="Package" label="Inventario" active={view === 'inventory'} onClick={() => setView('inventory')} />
-                            <div className="relative -top-5">
-                                <button onClick={() => setView('orders')} className="w-14 h-14 bg-brand-red rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/40 border-4 border-gray-50">
-                                    <Icon name="Plus" size={28} />
-                                </button>
-                            </div>
+                            {/* Botón Flotante Central */}
+<div className="relative -top-5">
+    <button onClick={() => setView('quotes')} className="w-14 h-14 bg-brand-red rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/40 border-4 border-gray-50 transition-transform active:scale-95">
+        <Icon name="Plus" size={28} />
+    </button>
+</div>
                             <MobileButton icon="Banknote" label="Finanzas" active={view === 'finanzas'} onClick={() => setView('finanzas')} />
                             <MobileButton icon="Activity" label="Calidad" active={view === 'alerts'} onClick={() => setView('alerts')} />
                         </div>

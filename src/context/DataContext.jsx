@@ -4,32 +4,33 @@ import useCollection from '../hooks/useCollection';
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
-    // Aquí cargamos TODOS los datos una sola vez
     const { data: orders, loading: loadingOrders } = useCollection('pedidos');
     const { data: products, loading: loadingProducts } = useCollection('productos');
-    const { data: shipping } = useCollection('tarifas_envios');
-    const { data: providers } = useCollection('proveedores');
+    const { data: shipping, loading: loadingShipping } = useCollection('tarifas_envios');
+    const { data: providers, loading: loadingProviders } = useCollection('proveedores');
     const { data: finanzas, loading: loadingFinanzas } = useCollection('finanzas');
     
-    // Configuraciones
+    // NUEVO: Agregamos la colección de cotizaciones
+    const { data: quotes, loading: loadingQuotes } = useCollection('cotizaciones');
+
     const { data: financeConfigData } = useCollection('config_finanzas');
     const { data: anomalyConfigData } = useCollection('config_novedades');
     const { data: generalConfig } = useCollection('config_general');
     const { data: lines } = useCollection('config_lineas');
 
-    // Preparamos datos útiles para que estén listos
     const financeConfig = financeConfigData[0] || { methods: [] };
-    const cloudConfig = generalConfig[0] || {};
+    const cloudConfig = generalConfig?.[0] || {};
     
-    const loading = loadingOrders || loadingProducts || loadingFinanzas;
+    // Agregamos loadingQuotes al loading global
+    const loading = loadingOrders || loadingProducts || loadingFinanzas || loadingQuotes;
 
-    // Empaquetamos todo para enviarlo a las vistas
     const value = {
         orders,
         products,
         shipping,
         providers,
         finanzas,
+        quotes, // <--- EXPORTAMOS AQUÍ
         lines,
         financeConfig,
         cloudConfig,
@@ -40,5 +41,4 @@ export const DataProvider = ({ children }) => {
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };
 
-// Este es el gancho que usaremos en las vistas para pedir los datos
-export const useData = () => useContext(DataContext);   
+export const useData = () => useContext(DataContext);

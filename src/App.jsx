@@ -10,7 +10,7 @@ import InventoryView from './views/InventoryView';
 import FinanzasView from './views/FinanzasView';
 import ConfigView from './views/ConfigView';
 import ShareView from './views/ShareView';
-import AlertsView from './views/AlertsView'; 
+import AlertsView from './views/AlertsView';
 import QuotesView from './views/QuotesView';
 import DashboardView from './views/DashboardView';
 
@@ -39,21 +39,19 @@ const App = () => {
         <UIProvider>
             <DataProvider>
                 <div className="flex h-screen w-full bg-brand-light overflow-hidden text-slate-800 font-sans">
-                    
+
                     {/* --- SIDEBAR (ESCRITORIO) --- */}
                     <aside className={`${isSidebarOpen ? 'w-72 translate-x-0' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'} bg-brand-dark text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out z-30 relative hidden md:flex`}>
-                        
-                        {/* LOGO */}
-                        <div className="h-20 flex items-center justify-center border-b border-gray-800/50">
-                            {isSidebarOpen ? (
-                                <h1 className="text-3xl font-black tracking-tighter text-white select-none">
-                                    JS<span className="text-brand-red">SHOES</span>
-                                </h1>
-                            ) : (
-                                <h1 className="text-2xl font-black text-brand-red">JS</h1>
-                            )}
+
+                        {/* Logo Imagen */}
+                        <div className="p-6 flex justify-center items-center">
+                            <img
+                                src="/logo.png"
+                                alt="JShoes Logo"
+                                className="h-16 w-auto object-contain transition-transform hover:scale-105"
+                            />
                         </div>
-                        
+
                         {/* NAVEGACIÓN */}
                         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
                             <MenuButton icon="LayoutDashboard" label="Inicio" active={view === 'dashboard'} isOpen={isSidebarOpen} onClick={() => setView('dashboard')} />
@@ -62,7 +60,7 @@ const App = () => {
                             <MenuButton icon="Package" label="Inventario" active={view === 'inventory'} isOpen={isSidebarOpen} onClick={() => setView('inventory')} />
                             <MenuButton icon="Banknote" label="Finanzas" active={view === 'finanzas'} isOpen={isSidebarOpen} onClick={() => setView('finanzas')} />
                             <MenuButton icon="Share2" label="Social / MKT" active={view === 'share'} isOpen={isSidebarOpen} onClick={() => setView('share')} />
-                            
+
                             {/* --- 2. BOTÓN NUEVO DE CALIDAD --- */}
                             <MenuButton icon="Activity" label="Control Calidad" active={view === 'alerts'} isOpen={isSidebarOpen} onClick={() => setView('alerts')} />
 
@@ -70,7 +68,7 @@ const App = () => {
                                 <MenuButton icon="Settings" label="Configuración" active={view === 'config'} isOpen={isSidebarOpen} onClick={() => setView('config')} />
                             </div>
                         </nav>
-                        
+
                         {/* USUARIO */}
                         <div className="p-4 bg-black/30 border-t border-gray-800/50">
                             <div className={`flex items-center gap-3 ${!isSidebarOpen && 'justify-center'}`}>
@@ -89,7 +87,7 @@ const App = () => {
 
                     {/* --- ÁREA PRINCIPAL --- */}
                     <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#F3F4F6] relative w-full">
-                        
+
                         {/* HEADER SUPERIOR */}
                         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 shrink-0 z-20 shadow-sm">
                             <div className="flex items-center gap-4">
@@ -106,7 +104,7 @@ const App = () => {
                                     </h2>
                                 </div>
                             </div>
-                            
+
                             <div className="text-xs font-mono font-medium text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                                 {new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                             </div>
@@ -132,11 +130,11 @@ const App = () => {
                             <MobileButton icon="ShoppingCart" label="Pedidos" active={view === 'orders'} onClick={() => setView('orders')} />
                             <MobileButton icon="Package" label="Inventario" active={view === 'inventory'} onClick={() => setView('inventory')} />
                             {/* Botón Flotante Central */}
-<div className="relative -top-5">
-    <button onClick={() => setView('quotes')} className="w-14 h-14 bg-brand-red rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/40 border-4 border-gray-50 transition-transform active:scale-95">
-        <Icon name="Plus" size={28} />
-    </button>
-</div>
+                            <div className="relative -top-5">
+                                <button onClick={() => setView('quotes')} className="w-14 h-14 bg-brand-red rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/40 border-4 border-gray-50 transition-transform active:scale-95">
+                                    <Icon name="Plus" size={28} />
+                                </button>
+                            </div>
                             <MobileButton icon="Banknote" label="Finanzas" active={view === 'finanzas'} onClick={() => setView('finanzas')} />
                             <MobileButton icon="Activity" label="Calidad" active={view === 'alerts'} onClick={() => setView('alerts')} />
                         </div>
@@ -149,20 +147,20 @@ const App = () => {
 
 // BOTÓN MENÚ ESCRITORIO
 const MenuButton = ({ icon, label, active, isOpen, onClick }) => (
-    <button 
-        onClick={onClick} 
+    <button
+        onClick={onClick}
         className={`
             group w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ease-out relative overflow-hidden
-            ${active 
-                ? 'bg-gradient-to-r from-brand-red to-red-700 text-white shadow-lg shadow-brand-red/30' 
+            ${active
+                ? 'bg-gradient-to-r from-brand-red to-red-700 text-white shadow-lg shadow-brand-red/30'
                 : 'text-gray-400 hover:bg-white/5 hover:text-white'
             }
             ${!isOpen && 'justify-center px-0'}
         `}
     >
-        <Icon name={icon} size={22} className={`${active ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`} /> 
+        <Icon name={icon} size={22} className={`${active ? 'text-white' : 'text-gray-400 group-hover:text-white transition-colors'}`} />
         {isOpen && <span className="font-medium text-sm tracking-wide">{label}</span>}
-        
+
         {!isOpen && !active && (
             <div className="absolute left-14 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-xl border border-gray-700">
                 {label}

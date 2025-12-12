@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Modal from '../Modal';
 import Button from '../Button';
 import Icon from '../Icon';
 import { Input, NumberInput } from '../Inputs';
-import SmartSelect from '../SmartSelect';
+import SmartSelect from '../SmartSelect'; // El componente maestro
 import ImageUploader from '../ImageUploader';
+import SafeImg from '../SafeImg';
 import { formatCurrency } from '../../lib/utils';
 
 const OrderFormModal = ({
@@ -12,23 +13,16 @@ const OrderFormModal = ({
     onClose,
     isEditing,
     client, setClient, cart, setCart,
-    
-    // CORRECCIÓN 1: Usamos los nombres correctos que vienen de OrdersView
-    orderDate, 
-    setOrderDate,
-    
+    orderDate, setOrderDate,
     onSave,
-    handlePhoneChange, clientHistory, shippingOptions, handleCityChange,
+    clientHistory, shippingOptions, handleCityChange,
     toggleInternal,
     productsList, providersList,
     addToCart, updateCartItem, removeFromCart,
     isCustomMode, setIsCustomMode, itemSearch, setItemSearch,
     customItem, setCustomItem, saveToInventory, setSaveToInventory,
     handleCustomFile, handleCustomProvider, createCustom, uploadingCustom,
-    
-    // Props para sustitución
-    swappingIndex,
-    setSwappingIndex
+    swappingIndex, setSwappingIndex
 }) => {
     
     const handleClose = () => {
@@ -36,58 +30,108 @@ const OrderFormModal = ({
         onClose();
     };
 
+    // --- 1. PREPARAR DATOS DE CLIENTES ---
+    const clientOptions = useMemo(() => {
+        return Object.values(clientHistory || {}).map(c => ({
+            id: c.telefono,
+            nombre: c.nombre,
+            telefono: c.telefono,
+            ciudad: c.ciudad_entrega,
+            direccion: c.direccion
+        }));
+    }, [clientHistory]);
+
+    // Manejador unificado para selección de clientes
+    const handleClientSelect = (e) => {
+        const c = e.target.object; // SmartSelect devuelve el objeto completo
+        if (c) {
+            setClient(prev => ({
+                ...prev,
+                nombre: c.nombre || prev.nombre,
+                telefono: c.telefono || prev.telefono,
+                ciudad_entrega: c.ciudad || prev.ciudad_entrega,
+                direccion: c.direccion || prev.direccion
+            }));
+        } else {
+            // Si escribió algo nuevo manualmente
+            setClient(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        }
+    };
+
+    // --- 2. MANEJADOR DE PRODUCTOS ---
+    const handleProductSelect = (e) => {
+        const p = e.target.object;
+        if (p) {
+            addToCart(p);
+            // El SmartSelect limpia su valor interno automáticamente si no se controla externamente,
+            // pero aquí usamos itemSearch solo para limpiar si es necesario.
+        }
+    };
+
     return (
         <Modal isOpen={isOpen} onClose={handleClose} title={isEditing ? "Editar Pedido" : "Nuevo Pedido"}>
             <div className="flex flex-col gap-6">
                 
-                {/* DATOS CLIENTE */}
+                {/* SECCIÓN A: DATOS DEL CLIENTE (Solo si no estamos sustituyendo producto) */}
                 {swappingIndex === null && (
                     <div className="space-y-4 animate-fade-in">
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* CORRECCIÓN 2: Blindaje con || '' para evitar error 'uncontrolled' */}
-                            <Input 
-                                type="date" 
-                                label="Fecha" 
-                                value={orderDate || ''} 
-                                onChange={e => setOrderDate(e.target.value)} 
-                            />
-                            <div className="flex-1">
-                                <Input 
-                                    label="Nombre Cliente" 
-                                    value={client.nombre || ''} 
-                                    onChange={e => setClient({...client, nombre: e.target.value})} 
+                            <Input type="date" label="Fecha" value={orderDate || ''} onChange={e => setOrderDate(e.target.value)} />
+                            
+                            {/* Buscador de Nombre (Con SmartSelect) */}
+                            <div>
+                                <SmartSelect 
+                                    label="Nombre Cliente"
+                                    placeholder="Buscar o escribir..."
+                                    options={clientOptions}
+                                    value={client.nombre || ''}
+                                    onChange={(e) => { e.target.name = 'nombre'; handleClientSelect(e); }}
+                                    searchFields={['nombre', 'telefono']}
+                                    displayProp="nombre"
+                                    valueProp="nombre"
+                                    onCreate={(val) => setClient(prev => ({...prev, nombre: val}))}
+                                    renderItem={(c, isSelected) => (
+                                        <div className={`px-4 py-2 text-sm ${isSelected ? 'text-brand-red font-bold' : 'text-gray-700'}`}>
+                                            <div>{c.nombre}</div>
+                                            <div className="text-xs text-gray-400">{c.ciudad}</div>
+                                        </div>
+                                    )}
                                 />
                             </div>
                         </div>
 
                         <div className="flex items-center gap-2 px-2">
-                            <input 
-                                type="checkbox" 
-                                id="intOrder" 
-                                checked={!!client.is_internal} 
-                                onChange={toggleInternal} 
-                                className="w-5 h-5 accent-brand-red cursor-pointer"
-                            />
+                            <input type="checkbox" id="intOrder" checked={!!client.is_internal} onChange={toggleInternal} className="w-5 h-5 accent-brand-red cursor-pointer"/>
                             <label htmlFor="intOrder" className="text-sm font-bold text-gray-700 cursor-pointer select-none">¿Es Pedido Interno (Mío)?</label>
                         </div>
 
                         {!client.is_internal && (
                             <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1.5 w-full">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Teléfono</label>
-                                    <input 
-                                        className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:border-brand-red focus:ring-2 focus:ring-red-100 outline-none transition-all" 
-                                        list="phones-list" 
-                                        value={client.telefono || ''} 
-                                        onChange={handlePhoneChange} 
-                                        placeholder="Buscar o escribir..."
+                                {/* Buscador de Teléfono (Con SmartSelect) */}
+                                <div>
+                                    <SmartSelect 
+                                        label="Teléfono"
+                                        placeholder="Buscar..."
+                                        options={clientOptions}
+                                        value={client.telefono || ''}
+                                        onChange={(e) => { e.target.name = 'telefono'; handleClientSelect(e); }}
+                                        searchFields={['telefono', 'nombre']}
+                                        displayProp="telefono"
+                                        valueProp="telefono"
+                                        onCreate={(val) => setClient(prev => ({...prev, telefono: val}))}
+                                        renderItem={(c, isSelected) => (
+                                            <div className={`px-4 py-2 text-sm ${isSelected ? 'text-brand-red' : 'text-gray-700'}`}>
+                                                <div className="font-mono font-bold">{c.telefono}</div>
+                                                <div className="text-xs text-gray-500">{c.nombre}</div>
+                                            </div>
+                                        )}
                                     />
-                                    <datalist id="phones-list">
-                                        {Object.values(clientHistory || {}).map((c, i) => (<option key={i} value={c.telefono}>{c.nombre} - {c.ciudad}</option>))}
-                                    </datalist>
                                 </div>
+
                                 <Input label="Ciudad Cliente" value={client.ciudad || ''} onChange={e => setClient({...client, ciudad: e.target.value})} />
                                 <Input label="Dirección" value={client.direccion || ''} onChange={e => setClient({...client, direccion: e.target.value})} />
+                                
+                                {/* Ciudad Entrega (Lista simple estandarizada) */}
                                 <div>
                                     <SmartSelect 
                                         label="Ciudad Entrega" 
@@ -96,30 +140,32 @@ const OrderFormModal = ({
                                         options={shippingOptions} 
                                         displayProp="ciudad" 
                                         valueProp="ciudad" 
-                                        placeholder="Buscar Ciudad..." 
+                                        placeholder="Seleccionar..." 
                                     />
                                 </div>
                             </div>
                         )}
 
                         {client.es_acopio && (
-                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200 flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2 text-indigo-800 font-bold"><Icon name="Truck"/> <span>Ciudad con Acopio</span></div>
-                                <select 
-                                    className="px-3 py-1.5 rounded border border-indigo-300 bg-white text-indigo-900 outline-none" 
+                            <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-200 flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-indigo-800 font-bold text-sm">
+                                    <Icon name="Truck" size={16}/> 
+                                    <span>Ciudad con Acopio Detectada</span>
+                                </div>
+                                {/* ESTANDARIZACIÓN: Adiós select nativo, hola SmartSelect */}
+                                <SmartSelect 
                                     value={client.estrategia || 'Directo'} 
                                     onChange={e => setClient({...client, estrategia: e.target.value})}
-                                >
-                                    <option value="Acopio">Enviar a Acopio</option>
-                                    <option value="Directo">Envío Directo</option>
-                                </select>
+                                    options={['Acopio', 'Directo']}
+                                    placeholder="Seleccionar estrategia..."
+                                />
                             </div>
                         )}
                         <div className="border-t border-gray-100 my-2"></div>
                     </div>
                 )}
 
-                {/* SECCIÓN BUSCADOR / REEMPLAZO */}
+                {/* SECCIÓN B: BUSCADOR DE PRODUCTOS */}
                 <div className="space-y-3 sticky top-0 bg-white z-20 pb-2">
                     {swappingIndex !== null && (
                         <div className="bg-amber-100 text-amber-800 p-3 rounded-lg flex justify-between items-center border border-amber-300 shadow-sm animate-pulse">
@@ -136,30 +182,32 @@ const OrderFormModal = ({
                     </div>
 
                     {!isCustomMode ? (
+                        /* BUSCADOR DE PRODUCTOS (MODO RICO) */
                         <div className="relative z-20">
-                            <div className="absolute left-3 top-3 text-gray-400"><Icon name="Search" size={16}/></div>
-                            <input 
-                                className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm focus:ring-2 outline-none ${swappingIndex !== null ? 'border-amber-400 ring-2 ring-amber-100' : 'border-gray-300 focus:ring-brand-red'}`}
-                                placeholder={swappingIndex !== null ? "Busca el producto correcto..." : "Escribe SKU o Modelo..."}
-                                value={itemSearch || ''} 
-                                onChange={e => setItemSearch(e.target.value)} 
-                                autoFocus={swappingIndex !== null}
-                            />
-                            {itemSearch && (
-                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-b-xl border border-gray-100 mt-1 max-h-48 overflow-auto">
-                                    {productsList.filter(p => p.sku.toLowerCase().includes(itemSearch.toLowerCase()) || p.modelo.toLowerCase().includes(itemSearch.toLowerCase())).map(p => (
-                                        <div key={p.id} onClick={() => addToCart(p)} className="p-3 hover:bg-red-50 cursor-pointer border-b border-gray-50 flex justify-between items-center transition-colors">
-                                            <div>
-                                                <span className="font-bold text-gray-800">{p.modelo}</span> 
-                                                <span className="text-xs text-gray-400 ml-2">({p.sku})</span>
+                            <SmartSelect
+                                placeholder={swappingIndex !== null ? "Busca el producto correcto..." : "Buscar SKU, Marca o Modelo..."}
+                                options={productsList}
+                                onChange={handleProductSelect}
+                                searchFields={['sku', 'modelo', 'marca']}
+                                displayProp="modelo"
+                                valueProp="id"
+                                // DISEÑO PERSONALIZADO (FOTO + DETALLES)
+                                renderItem={(p, isSelected) => (
+                                    <div className={`flex items-center gap-3 p-2 border-b border-gray-50 last:border-0 ${isSelected ? 'bg-red-50' : ''}`}>
+                                        <SafeImg src={p.imagen} className="w-10 h-10 rounded bg-gray-100 object-cover" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-gray-800 truncate">{p.modelo}</div>
+                                            <div className="text-xs text-gray-500 flex gap-1">
+                                                <span>{p.marca}</span> • <span className="font-mono">{p.sku}</span>
                                             </div>
-                                            <span className="font-bold text-brand-red">{formatCurrency(p.precio)}</span>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                        <div className="text-xs font-bold text-brand-red">{formatCurrency(p.precio)}</div>
+                                    </div>
+                                )}
+                            />
                         </div>
                     ) : (
+                        /* FORMULARIO MANUAL */
                         <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-3 relative">
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="text-xs font-bold text-amber-800 uppercase">Producto Manual</h4>
@@ -169,23 +217,40 @@ const OrderFormModal = ({
                                 </div>
                             </div>
                             
-                            <ImageUploader 
-                                image={customItem.imagen || ''} 
-                                onFileSelect={handleCustomFile} 
-                                loading={uploadingCustom} 
-                                onClear={() => setCustomItem({...customItem, imagen: ''})} 
-                            />
+                            <ImageUploader image={customItem.imagen || ''} onFileSelect={handleCustomFile} loading={uploadingCustom} onClear={() => setCustomItem({...customItem, imagen: ''})} />
                             
                             <div className="grid grid-cols-2 gap-2">
                                 <Input label="Marca" value={customItem.marca || ''} onChange={e => setCustomItem({...customItem, marca: e.target.value})} />
                                 <Input label="Modelo" value={customItem.modelo || ''} onChange={e => setCustomItem({...customItem, modelo: e.target.value})} />
                             </div>
-                            <div className="grid grid-cols-3 gap-2">
-                                <NumberInput label="Precio" value={customItem.precio || ''} onChange={e => setCustomItem({...customItem, precio: e.target.value})} />
-                                <NumberInput label="Costo" value={customItem.costo || ''} onChange={e => setCustomItem({...customItem, costo: e.target.value})} />
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* AQUÍ AGREGAMOS EL GÉNERO QUE FALTABA */}
+                                <SmartSelect 
+                                    label="Género" 
+                                    value={customItem.genero || 'Unisex'} 
+                                    onChange={e => setCustomItem({...customItem, genero: e.target.value})} 
+                                    options={['Unisex', 'Hombre', 'Mujer', 'Niños']} 
+                                    placeholder="Seleccionar..." 
+                                />
                                 <Input label="Talla" value={customItem.talla || ''} onChange={e => setCustomItem({...customItem, talla: e.target.value})} />
                             </div>
-                            <SmartSelect label="Proveedor" value={customItem.proveedor_uid || ''} onChange={handleCustomProvider} options={providersList} displayProp="nombre" valueProp="id" placeholder="Buscar Prov..." />
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <NumberInput label="Precio" value={customItem.precio || ''} onChange={e => setCustomItem({...customItem, precio: e.target.value})} />
+                                <NumberInput label="Costo" value={customItem.costo || ''} onChange={e => setCustomItem({...customItem, costo: e.target.value})} />
+                            </div>
+                            
+                            {/* Proveedor en Manual también estandarizado */}
+                            <SmartSelect 
+                                label="Proveedor" 
+                                value={customItem.proveedor_uid || ''} 
+                                onChange={handleCustomProvider} 
+                                options={providersList} 
+                                displayProp="nombre" 
+                                valueProp="id" 
+                                placeholder="Buscar Prov..." 
+                            />
                             
                             <Button onClick={createCustom} className="w-full bg-amber-600 hover:bg-amber-700 text-white shadow-none" disabled={uploadingCustom}>
                                 {swappingIndex !== null ? 'Sustituir Producto' : 'Agregar al Pedido'}
@@ -194,7 +259,7 @@ const OrderFormModal = ({
                     )}
                 </div>
 
-                {/* CARRITO */}
+                {/* SECCIÓN C: CARRITO */}
                 <div className={`bg-white border rounded-xl overflow-hidden shadow-sm transition-colors ${swappingIndex !== null ? 'opacity-50 pointer-events-none border-amber-200' : 'border-gray-200'}`}>
                     <div className="bg-gray-50 px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Resumen del Pedido</div>
                     <table className="w-full text-sm text-left">
@@ -206,7 +271,6 @@ const OrderFormModal = ({
                                     </td>
                                     <td className="p-3">
                                         <div className="font-bold text-gray-800">{it.modelo}</div>
-                                        {/* Mostrar si tiene pago ya registrado */}
                                         {(Number(it.pago_proveedor) > 0) && (
                                             <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 rounded font-bold">
                                                 Pagado: {formatCurrency(it.pago_proveedor)}
@@ -219,8 +283,7 @@ const OrderFormModal = ({
                                     <td className="p-3 text-right font-bold text-gray-700">{formatCurrency(it.total)}</td>
                                     <td className="p-3 text-right w-16">
                                         <div className="flex gap-1 justify-end">
-                                            {/* BOTÓN SUSTITUIR */}
-                                            <button onClick={() => setSwappingIndex(i)} className="text-gray-400 hover:text-amber-600 transition-colors p-1" title="Cambiar producto (Mantener pago)">
+                                            <button onClick={() => setSwappingIndex(i)} className="text-gray-400 hover:text-amber-600 transition-colors p-1" title="Cambiar producto">
                                                 <Icon name="RefreshCw" size={16}/>
                                             </button>
                                             <button onClick={() => removeFromCart(i)} className="text-gray-300 hover:text-brand-red transition-colors p-1">

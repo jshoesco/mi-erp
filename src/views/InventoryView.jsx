@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import SafeImg from '../components/SafeImg'; // Arriba
+import SafeImg from '../components/SafeImg';
 import useCollection from '../hooks/useCollection';
 import { useUI } from '../context/UIContext';
 import { db, doc, writeBatch, collection, addDoc, updateDoc, deleteDoc } from '../lib/firebase';
@@ -8,7 +8,7 @@ import Button from '../components/Button';
 import Icon, { Spinner } from '../components/Icon';
 import Modal from '../components/Modal';
 import { Input, NumberInput, Select } from '../components/Inputs';
-import SmartSelect from '../components/SmartSelect';
+import SmartSelect from '../components/SmartSelect'; // Ahora usamos el Todoterreno
 import ImageUploader from '../components/ImageUploader';
 import BulkActions from '../components/BulkActions';
 
@@ -31,11 +31,23 @@ const InventoryView = () => {
     const [compareProduct, setCompareProduct] = useState(null);
 
     // Calcular envío máximo para referencia de precios
-    const maxShipping = useMemo(() => { if (!shipping.length) return 0; return Math.max(...shipping.map(s => Number(s.tarifa) || 0)); }, [shipping]);
+    const maxShipping = useMemo(() => { 
+        if (!shipping.length) return 0; 
+        return Math.max(...shipping.map(s => Number(s.tarifa) || 0)); 
+    }, [shipping]);
 
     // Autocompletar marcas y modelos basados en lo que ya existe
-    useEffect(() => { const brands = [...new Set(products.map(p => p.marca))].filter(Boolean); setSuggestions(prev => ({ ...prev, brands })); }, [products]);
-    useEffect(() => { if (form.marca) { const models = [...new Set(products.filter(p => p.marca === form.marca).map(p => p.modelo))].filter(Boolean); setSuggestions(prev => ({ ...prev, models })); } }, [form.marca, products]);
+    useEffect(() => { 
+        const brands = [...new Set(products.map(p => p.marca))].filter(Boolean); 
+        setSuggestions(prev => ({ ...prev, brands })); 
+    }, [products]);
+
+    useEffect(() => { 
+        if (form.marca) { 
+            const models = [...new Set(products.filter(p => p.marca === form.marca).map(p => p.modelo))].filter(Boolean); 
+            setSuggestions(prev => ({ ...prev, models })); 
+        } 
+    }, [form.marca, products]);
     
     // Detección de duplicados para sugerir reemplazo
     useEffect(() => { 
@@ -73,6 +85,7 @@ const InventoryView = () => {
     };
 
     const handleProviderChange = (e) => { 
+        // SmartSelect devuelve e.target.value con el ID
         const provId = e.target.value; 
         const provData = providers.find(p => p.id === provId); 
         if (!form.id && provData) { 
@@ -250,14 +263,29 @@ const InventoryView = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input type="date" label="Fecha" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-                        <SmartSelect label="Proveedor" value={form.proveedor_uid} onChange={handleProviderChange} options={providers} displayProp="nombre" valueProp="id" placeholder="Buscar Proveedor..." />
+                        
+                        {/* --- CAMBIO: SmartSelect para Proveedores --- */}
+                        <SmartSelect 
+                            label="Proveedor" 
+                            value={form.proveedor_uid} 
+                            onChange={handleProviderChange} 
+                            options={providers} 
+                            displayProp="nombre" 
+                            valueProp="id" 
+                            placeholder="Buscar Proveedor..." 
+                        />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="SKU" value={form.sku} readOnly className="bg-gray-100 font-mono font-bold text-gray-700 cursor-not-allowed" />
-                        <Select label="Género" value={form.genero} onChange={e => setForm({ ...form, genero: e.target.value })}>
-                            <option>Unisex</option><option>Hombre</option><option>Mujer</option><option>Niños</option>
-                        </Select>
+                        {/* Estandarización: Usamos SmartSelect con lista fija */}
+<SmartSelect 
+    label="Género" 
+    value={form.genero} 
+    onChange={e => setForm({ ...form, genero: e.target.value })} 
+    options={['Unisex', 'Hombre', 'Mujer', 'Niños']} 
+    placeholder="Seleccionar..." 
+/>
                     </div>
 
                     {/* ALERTA DE DUPLICADOS */}
@@ -270,8 +298,23 @@ const InventoryView = () => {
                     {replaceId && (<div className="bg-blue-50 border border-blue-200 p-3 rounded-xl text-xs text-blue-800 text-center font-bold">Sustituyendo producto existente. Se marcará como "Reemplazado".</div>)}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SmartSelect label="Marca" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} options={suggestions.brands} placeholder="Marca..." />
-                        <SmartSelect label="Modelo" value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} options={suggestions.models} placeholder="Modelo..." />
+                        {/* --- CAMBIO: SmartSelect para Marca y Modelo --- */}
+                        <SmartSelect 
+                            label="Marca" 
+                            value={form.marca} 
+                            onChange={e => setForm({ ...form, marca: e.target.value })} 
+                            options={suggestions.brands} 
+                            placeholder="Escribe o selecciona..." 
+                            onCreate={(val) => setForm({...form, marca: val})} // Permitir nuevas
+                        />
+                        <SmartSelect 
+                            label="Modelo" 
+                            value={form.modelo} 
+                            onChange={e => setForm({ ...form, modelo: e.target.value })} 
+                            options={suggestions.models} 
+                            placeholder="Escribe o selecciona..." 
+                            onCreate={(val) => setForm({...form, modelo: val})} // Permitir nuevas
+                        />
                     </div>
                     <Input label="Nombre Genérico" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
                     
@@ -305,7 +348,7 @@ const InventoryView = () => {
                 </div>
             </Modal>
             
-            {/* MODAL DE REEMPLAZO */}
+            {/* MODAL DE REEMPLAZO Y COMPARACIÓN SE MANTIENEN IGUAL... */}
             <Modal isOpen={replaceModalOpen} onClose={() => setReplaceModalOpen(false)} title="Productos Similares">
                 <div className="space-y-3">
                     <p className="text-sm text-gray-500">Selecciona un producto antiguo para reemplazarlo con este nuevo ingreso.</p>
@@ -333,7 +376,6 @@ const InventoryView = () => {
                 </div>
             </Modal>
 
-            {/* MODAL DE COMPARACIÓN VISUAL */}
             {compareProduct && (
                 <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-brand-dark/90 backdrop-blur-sm" onClick={() => setCompareProduct(null)}>
                     <div className="bg-white p-6 rounded-2xl shadow-2xl max-w-3xl w-full flex flex-col gap-6" onClick={e => e.stopPropagation()}>

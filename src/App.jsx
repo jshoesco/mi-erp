@@ -12,6 +12,7 @@ import ConfigView from './views/ConfigView';
 import ShareView from './views/ShareView';
 import AlertsView from './views/AlertsView'; 
 import QuotesView from './views/QuotesView';
+import DashboardView from './views/DashboardView';
 
 // COMPONENTES UI
 import Icon, { Spinner } from './components/Icon';
@@ -19,7 +20,7 @@ import Icon, { Spinner } from './components/Icon';
 const App = () => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState('orders');
+    const [view, setView] = useState('dashboard');
     const [isSidebarOpen, setSidebarOpen] = useState(true);
 
     // Monitorear sesión
@@ -55,6 +56,7 @@ const App = () => {
                         
                         {/* NAVEGACIÓN */}
                         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
+                            <MenuButton icon="LayoutDashboard" label="Inicio" active={view === 'dashboard'} isOpen={isSidebarOpen} onClick={() => setView('dashboard')} />
                             <MenuButton icon="HelpCircle" label="Cotizaciones" active={view === 'quotes'} isOpen={isSidebarOpen} onClick={() => setView('quotes')} />
                             <MenuButton icon="ShoppingCart" label="Pedidos" active={view === 'orders'} isOpen={isSidebarOpen} onClick={() => setView('orders')} />
                             <MenuButton icon="Package" label="Inventario" active={view === 'inventory'} isOpen={isSidebarOpen} onClick={() => setView('inventory')} />
@@ -113,6 +115,7 @@ const App = () => {
                         {/* VISTAS */}
                         <main className="flex-1 overflow-auto p-4 md:p-6 pb-24 md:pb-6 relative w-full">
                             <div className="max-w-7xl mx-auto h-full flex flex-col">
+                                {view === 'dashboard' && <DashboardView setView={setView} />}
                                 {view === 'quotes' && <QuotesView />}
                                 {view === 'orders' && <OrdersView />}
                                 {view === 'inventory' && <InventoryView />}

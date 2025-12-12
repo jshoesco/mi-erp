@@ -559,6 +559,64 @@ const OrdersView = () => {
 
 // A. COLUMNA DE VENTAS (Diseño Premium)
     // CAMBIO: Agregamos 'index' como cuarto parámetro
+    
+    // --- LÓGICA DE UNIFICACIÓN Y CONFLICTOS (NUEVO) ---
+    
+    // Estados para el conflicto de dirección
+    const [addressConflictOpen, setAddressConflictOpen] = useState(false);
+    const [addressOptions, setAddressOptions] = useState([]);
+    const [selectedAddress, setSelectedAddress] = useState(null);
+
+    // FUNCIÓN: Desvincular (Sacar del grupo)
+    const unlinkOrder = async (visualId) => {
+        confirmAction({
+            title: "Desvincular Pedido",
+            message: `El pedido #${visualId} se separará del grupo. ¿Confirmar?`,
+            onConfirm: async () => {
+                try {
+                    const orderToUnlink = orders.find(o => o.id_visual === visualId);
+                    if (!orderToUnlink) return;
+                    const batch = writeBatch(db);
+                    const orderRef = doc(db, 'pedidos', orderToUnlink.id);
+                    
+                    // Borramos la propiedad linked_to_order_id
+                    const newItems = orderToUnlink.items.map(it => {
+                        const { linked_to_order_id, ...rest } = it; 
+                        return rest;
+                    });
+
+                    batch.update(orderRef, { items: newItems });
+                    await batch.commit();
+                    notify("Pedido desvinculado correctamente");
+                } catch (e) { notify("Error: " + e.message, "error"); }
+            }
+        });
+    };
+
+    // FUNCIÓN: Preparar Unión (Preguntar dirección)
+    const handlePrepareLink = () => {
+        if (!linkSourceGroup || !selectedTargetId) return;
+
+        // 1. Obtener datos
+        const targetOrder = orders.find(o => o.id === selectedTargetId || o.items.some(i => i.linked_to_order_id === selectedTargetId));
+        const sourceOrderId = linkSourceGroup.items[0].orderId;
+        const sourceOrder = orders.find(o => o.id === sourceOrderId);
+
+        // 2. Crear opciones
+        const options = [];
+        if (targetOrder) options.push({ label: `Destino: ${targetOrder.cliente.nombre} (${targetOrder.cliente.ciudad_entrega})`, value: targetOrder.cliente.direccion, clientName: targetOrder.cliente.nombre });
+        if (sourceOrder) options.push({ label: `Origen: ${sourceOrder.cliente.nombre} (${sourceOrder.cliente.ciudad_entrega})`, value: sourceOrder.cliente.direccion, clientName: sourceOrder.cliente.nombre });
+        
+        // 3. Decidir
+        if (options.length > 0 && options[0].value === options[1]?.value) {
+            submitLinkOrders(); // Misma dirección, unir directo
+        } else {
+            setAddressOptions(options);
+            setSelectedAddress(options[0]); 
+            setAddressConflictOpen(true); // Abrir pregunta
+        }
+    };
+
     const renderSalesColumn = (title, items, colorClass, index) => (
         <div key={index} className={`min-w-[320px] bg-white rounded-xl flex flex-col h-full border border-gray-200 shadow-sm ${colorClass}`}>
             <div className="p-4 font-bold text-gray-800 flex justify-between items-center bg-gray-50/90 backdrop-blur-sm rounded-t-xl sticky top-0 border-b border-gray-200 z-10">
@@ -586,7 +644,9 @@ const OrdersView = () => {
         </div>
     );
 
+    // B. TARJETA KANBAN LOGÍSTICA (Agrupada)
     const renderKanbanCard = (group, columnType) => {
+        // 1. Agrupar ítems por pedido visual
         const subOrders = {};
         group.items.forEach(item => {
             const key = item.orderVisualId;
@@ -595,8 +655,14 @@ const OrdersView = () => {
             if(calculateItemDebt(item) > 0) subOrders[key].hasDebt = true;
         });
 
+        // 2. CORRECCIÓN: Definir isGrouped AQUÍ para que no de error abajo
+        const isGrouped = Object.keys(subOrders).length > 1;
+        const cardTitle = isGrouped ? `${Object.keys(subOrders).length} Pedidos Unificados` : group.mainClientName;
+
         return (
             <div key={group.id} className={`bg-white p-3 rounded-xl shadow-sm border hover:shadow-md transition-shadow relative border-l-4 ${group.totalDebt > 100 ? 'border-l-brand-red border-gray-200' : 'border-l-emerald-500 border-gray-200'}`}>
+                
+                {/* Cabecera Enviado */}
                 {columnType === 'shipped' && (
                     <div className="bg-emerald-50 -mx-3 -mt-3 mb-3 p-2 border-b border-emerald-100 rounded-t-lg flex justify-between items-center" onClick={(e)=>e.stopPropagation()}>
                         <span className="text-[10px] font-bold text-emerald-700 flex items-center gap-1"><Icon name="Truck" size={10}/> {group.guideInfo?.numero || 'S/G'}</span>
@@ -607,15 +673,21 @@ const OrdersView = () => {
                         </div>
                     </div>
                 )}
+                {/* Cabecera Entregado */}
                 {columnType === 'delivered' && (
                     <div className="bg-gray-100 -mx-3 -mt-3 mb-3 p-2 border-b border-gray-200 rounded-t-lg flex justify-between items-center">
                         <span className="text-[10px] font-bold text-gray-600 flex items-center gap-1"><Icon name="CheckCircle" size={10}/> {group.items[0]?.fecha_entrega}</span>
                         <button onClick={(e)=>{e.stopPropagation(); undoDelivery(group.items)}} className="text-brand-red hover:bg-red-50 p-1 rounded" title="Reversar"><Icon name="RotateCcw" size={12}/></button>
                     </div>
                 )}
+
+                {/* Info Logística */}
                 <div className="flex justify-between items-start mb-3">
                     <div>
-                        <div className="font-bold text-sm text-gray-800 flex items-center gap-1"><Icon name="Truck" size={12} className="text-gray-400"/> {group.provName}</div>
+                        <div className="font-bold text-sm text-gray-800 flex items-center gap-1">
+                            {isGrouped ? <Icon name="Users" size={14} className="text-indigo-600"/> : <Icon name="User" size={14} className="text-gray-400"/>} 
+                            {cardTitle}
+                        </div>
                         <div className="text-xs text-gray-500 font-medium flex items-center gap-2 mt-1">
                             <span className="flex items-center gap-1"><Icon name="MapPin" size={10}/> {group.city}</span>
                             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${group.isAcopio ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}`}>{group.estrategia}</span>
@@ -623,35 +695,44 @@ const OrdersView = () => {
                     </div>
                     {!group.isAcopio && columnType !== 'shipped' && columnType !== 'delivered' && (<button onClick={(e)=>{e.stopPropagation(); openLinkModal(group)}} className="text-gray-300 hover:text-indigo-600 p-1 transition-colors" title="Unificar Envío"><Icon name="Link" size={14}/></button>)}
                 </div>
+
+                {/* Lista de Productos (Aquí daba el error) */}
                 <div className="space-y-2">
                     {Object.values(subOrders).map((sub) => (
                         <div key={sub.visualId} className={`rounded-lg p-2 border ${sub.hasDebt ? 'bg-red-50/50 border-red-200 border-dashed' : 'bg-gray-50 border-gray-100'}`}>
                             <div className="flex justify-between items-center mb-1 pb-1 border-b border-black/5">
                                 <div className="text-xs font-bold text-gray-700">{sub.client} <span className="font-normal opacity-50 ml-1">#{sub.visualId}</span></div>
-                                {sub.hasDebt && <span className="text-[9px] font-bold text-brand-red flex items-center gap-0.5"><Icon name="AlertCircle" size={10}/> Pagar</span>}
+                                <div className="flex items-center gap-2">
+                                    {sub.hasDebt && <span className="text-[9px] font-bold text-brand-red flex items-center gap-0.5"><Icon name="AlertCircle" size={10}/> Pagar</span>}
+                                    
+                                    {/* Botón Desvincular (Ahora sí funcionará porque isGrouped existe) */}
+                                    {isGrouped && (
+                                        <button onClick={(e) => { e.stopPropagation(); unlinkOrder(sub.visualId); }} className="text-gray-400 hover:text-brand-red p-1" title="Desvincular">
+                                            <Icon name="Unlink" size={12} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="space-y-1">
                                 {sub.items.map((it, i) => (
-                                    <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-gray-50 last:border-0">
+                                    <div key={i} className="flex justify-between items-center text-xs">
                                         <div className="flex-1 min-w-0">
-                                            <div className="truncate font-bold text-gray-800">{it.modelo}</div>
-                                            <div className="text-[10px] text-gray-500 flex flex-wrap gap-1 items-center">
+                                            <div className="truncate font-medium text-gray-700">{it.cantidad}x {it.modelo}</div>
+                                            <div className="text-[10px] text-gray-400 truncate flex gap-1 items-center">
+                                                {/* Etiqueta Proveedor */}
                                                 <span className="bg-orange-100 text-orange-800 px-1 rounded font-bold uppercase text-[9px]">{group.provName}</span>
-                                                {it.talla && <span className="bg-white border border-gray-200 px-1 rounded text-gray-600">T{it.talla}</span>}
+                                                {it.talla && <span className="font-bold text-gray-600 bg-white border border-gray-200 px-1 rounded mr-1">T{it.talla}</span>}
                                                 <span>{it.sku}</span>
                                             </div>
                                         </div>
-                                        {calculateItemDebt(it) > 0 ? (
-                                            <span className="font-mono text-brand-red text-[10px] font-bold ml-2">${formatCurrency(calculateItemDebt(it)).replace('$','')}</span>
-                                        ) : (
-                                            <Icon name="Check" size={14} className="text-emerald-500 ml-2"/>
-                                        )}
+                                        {calculateItemDebt(it) > 0 ? (<span className="font-mono text-brand-red text-[9px] font-bold">${formatCurrency(calculateItemDebt(it)).replace('$','')}</span>) : (<Icon name="Check" size={12} className="text-emerald-500"/>)}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     ))}
                 </div>
+
                 <div className="mt-3 pt-3 border-t border-gray-100">
                     {columnType === 'pending' && (
                         <>
@@ -930,6 +1011,51 @@ const OrdersView = () => {
                     <div className="flex justify-end gap-2 pt-2">
                         <Button variant="secondary" onClick={()=>setLinkModalOpen(false)}>Cancelar</Button>
                         <Button onClick={submitLinkOrders} disabled={!selectedTargetId}>Confirmar Unión</Button>
+                    </div>
+                </div>
+            </Modal>
+{/* Modal Unificación (ACTUALIZADO) */}
+            <Modal isOpen={linkModalOpen} onClose={()=>setLinkModalOpen(false)} title="Unificar Envíos">
+                <div className="space-y-4">
+                    <p className="text-sm text-gray-600">Selecciona el pedido al cual quieres unir este envío:</p>
+                    <div className="space-y-2">
+                        {linkCandidates.map(c => (
+                            <div key={c.targetOrderId} onClick={()=>setSelectedTargetId(c.targetOrderId)} className={`p-3 border rounded-lg cursor-pointer ${selectedTargetId === c.targetOrderId ? 'bg-indigo-50 border-indigo-500' : 'hover:bg-gray-50'}`}>
+                                <div className="font-bold text-sm text-gray-800">{c.label}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="secondary" onClick={()=>setLinkModalOpen(false)}>Cancelar</Button>
+                        {/* CAMBIO: Ahora llama a handlePrepareLink en vez de submit directamente */}
+                        <Button onClick={handlePrepareLink} disabled={!selectedTargetId}>Confirmar Unión</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal Conflicto Dirección (NUEVO) */}
+            <Modal isOpen={addressConflictOpen} onClose={()=>setAddressConflictOpen(false)} title="Dirección de Entrega">
+                <div className="space-y-4">
+                    <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-sm text-amber-800">
+                        <Icon name="MapPin" size={16} className="inline mr-2"/>
+                        Clientes diferentes. <b>¿A dónde enviamos el paquete?</b>
+                    </div>
+                    <div className="space-y-2">
+                        {addressOptions.map((opt, i) => (
+                            <div key={i} onClick={() => setSelectedAddress(opt)} className={`p-3 rounded-lg border cursor-pointer flex items-center gap-3 transition-all ${selectedAddress?.value === opt.value ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white hover:bg-gray-50'}`}>
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedAddress?.value === opt.value ? 'border-indigo-600' : 'border-gray-400'}`}>
+                                    {selectedAddress?.value === opt.value && <div className="w-2 h-2 rounded-full bg-indigo-600"></div>}
+                                </div>
+                                <div className="text-sm">
+                                    <div className="font-bold text-gray-800">{opt.clientName}</div>
+                                    <div className="text-gray-500">{opt.value}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="secondary" onClick={()=>setAddressConflictOpen(false)}>Cancelar</Button>
+                        <Button onClick={submitLinkOrders} className="bg-indigo-600 text-white">Unificar</Button>
                     </div>
                 </div>
             </Modal>

@@ -656,28 +656,29 @@ const OrdersView = () => {
         const sourceOrderId = linkSourceGroup.items[0].orderId;
         const sourceOrder = orders.find(o => o.id === sourceOrderId);
 
-        // 2. Crear opciones (AHORA CON TODOS LOS DATOS NECESARIOS)
+        // 2. Crear opciones
         const options = [];
         
+        // CAMBIO AQUÍ: Quitamos "Destino:" y ponemos "Usar dirección de:"
         if (targetOrder) options.push({ 
-            label: `Destino: ${targetOrder.cliente.nombre} (${targetOrder.cliente.ciudad_entrega})`, 
-            value: targetOrder.cliente.direccion, // Dirección
+            label: `Usar dirección de: ${targetOrder.cliente.nombre}`, 
+            value: targetOrder.cliente.direccion, 
             clientName: targetOrder.cliente.nombre,
             clientPhone: targetOrder.cliente.telefono,
             clientCity: targetOrder.cliente.ciudad_entrega
         });
         
+        // CAMBIO AQUÍ: Quitamos "Origen:" y ponemos "Usar dirección de:"
         if (sourceOrder) options.push({ 
-            label: `Origen: ${sourceOrder.cliente.nombre} (${sourceOrder.cliente.ciudad_entrega})`, 
-            value: sourceOrder.cliente.direccion, // Dirección
+            label: `Usar dirección de: ${sourceOrder.cliente.nombre}`, 
+            value: sourceOrder.cliente.direccion, 
             clientName: sourceOrder.cliente.nombre,
             clientPhone: sourceOrder.cliente.telefono,
             clientCity: sourceOrder.cliente.ciudad_entrega
         });
         
-        // 3. Decidir
+        // 3. Decidir (Esto sigue igual)
         if (options.length > 0 && options[0].value === options[1]?.value) {
-            // Si las direcciones son idénticas, pasamos los datos del primero por defecto
             submitLinkOrders(options[0]); 
         } else {
             setAddressOptions(options);

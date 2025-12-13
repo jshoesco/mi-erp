@@ -7,8 +7,8 @@ import { formatCurrency, uploadToCloudinary, deleteFromCloudinary } from '../lib
 import Button from '../components/Button';
 import Icon, { Spinner } from '../components/Icon';
 import Modal from '../components/Modal';
-import { Input, NumberInput, Select } from '../components/Inputs';
-import SmartSelect from '../components/SmartSelect'; // Ahora usamos el Todoterreno
+import { Input, NumberInput } from '../components/Inputs';
+import SmartSelect from '../components/SmartSelect';
 import ImageUploader from '../components/ImageUploader';
 import BulkActions from '../components/BulkActions';
 
@@ -30,13 +30,17 @@ const InventoryView = () => {
     const [replaceId, setReplaceId] = useState(null);
     const [compareProduct, setCompareProduct] = useState(null);
 
+    // NUEVO: Estado para el ordenamiento
+    // Por defecto: Fecha descendente (lo último compartido/creado hasta arriba)
+    const [sortConfig, setSortConfig] = useState({ key: 'fecha', direction: 'desc' });
+
     // Calcular envío máximo para referencia de precios
     const maxShipping = useMemo(() => { 
         if (!shipping.length) return 0; 
         return Math.max(...shipping.map(s => Number(s.tarifa) || 0)); 
     }, [shipping]);
 
-    // Autocompletar marcas y modelos basados en lo que ya existe
+    // Autocompletar marcas y modelos
     useEffect(() => { 
         const brands = [...new Set(products.map(p => p.marca))].filter(Boolean); 
         setSuggestions(prev => ({ ...prev, brands })); 
@@ -49,7 +53,7 @@ const InventoryView = () => {
         } 
     }, [form.marca, products]);
     
-    // Detección de duplicados para sugerir reemplazo
+    // Detección de duplicados
     useEffect(() => { 
         if (form.modelo && !form.id) { 
             const matches = products.filter(p => p.modelo && p.modelo.toLowerCase() === form.modelo.toLowerCase() && p.status !== 'Reemplazado'); 
@@ -58,6 +62,16 @@ const InventoryView = () => {
             setSimilarProducts([]); 
         } 
     }, [form.modelo, products, form.id]);
+
+    // --- LÓGICA DE ORDENAMIENTO ---
+    const handleSort = (key) => {
+        let direction = 'asc';
+        // Si ya estamos ordenando por esa columna y es asc, cambiamos a desc
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     // --- ACCIONES ---
     const openModal = (item = null) => { 
@@ -85,7 +99,6 @@ const InventoryView = () => {
     };
 
     const handleProviderChange = (e) => { 
-        // SmartSelect devuelve e.target.value con el ID
         const provId = e.target.value; 
         const provData = providers.find(p => p.id === provId); 
         if (!form.id && provData) { 
@@ -160,11 +173,40 @@ const InventoryView = () => {
         }); 
     };
 
+    // --- FILTRADO Y ORDENAMIENTO ---
     const filteredProducts = useMemo(() => { 
-        if (!filterText) return products; 
-        const lowerFilter = filterText.toLowerCase(); 
-        return products.filter(p => (p.marca && p.marca.toLowerCase().includes(lowerFilter)) || (p.modelo && p.modelo.toLowerCase().includes(lowerFilter)) || (p.genero && p.genero.toLowerCase().includes(lowerFilter)) || (p.sku && p.sku.toLowerCase().includes(lowerFilter)) || (p.precio && p.precio.toString().includes(lowerFilter)) || (p.nombre && p.nombre.toLowerCase().includes(lowerFilter))); 
-    }, [products, filterText]);
+        let result = products;
+
+        // 1. Filtro de Búsqueda
+        if (filterText) {
+            const lowerFilter = filterText.toLowerCase(); 
+            result = result.filter(p => (p.marca && p.marca.toLowerCase().includes(lowerFilter)) || (p.modelo && p.modelo.toLowerCase().includes(lowerFilter)) || (p.genero && p.genero.toLowerCase().includes(lowerFilter)) || (p.sku && p.sku.toLowerCase().includes(lowerFilter)) || (p.precio && p.precio.toString().includes(lowerFilter)) || (p.nombre && p.nombre.toLowerCase().includes(lowerFilter))); 
+        }
+
+        // 2. Ordenamiento
+        if (sortConfig.key) {
+            result = [...result].sort((a, b) => {
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Manejo especial para fechas (strings ISO)
+                if (sortConfig.key === 'fecha') {
+                    aValue = new Date(aValue || 0).getTime();
+                    bValue = new Date(bValue || 0).getTime();
+                }
+
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+
+        return result;
+    }, [products, filterText, sortConfig]);
 
     if (loading) return <div className="p-10 flex justify-center"><Spinner /></div>;
     
@@ -205,12 +247,21 @@ const InventoryView = () => {
                                     <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={toggleSelectAll} className="w-4 h-4 cursor-pointer accent-brand-red" />
                                 </th>
                                 <th className="p-4">Img</th>
-                                <th className="p-4">SKU</th>
+                                {/* COLUMNA FECHA INTERACTIVA */}
+                                <th onClick={() => handleSort('fecha')} className="p-4 cursor-pointer hover:bg-gray-100 transition-colors select-none">
+                                    <div className="flex items-center gap-1">
+                                        Fecha
+                                        {sortConfig.key === 'fecha' && (
+                                            <Icon name={sortConfig.direction === 'asc' ? 'ChevronUp' : 'ChevronDown'} size={14} />
+                                        )}
+                                    </div>
+                                </th>
+                                <th onClick={() => handleSort('sku')} className="p-4 cursor-pointer hover:bg-gray-100 transition-colors select-none">SKU</th>
                                 <th className="p-4">Detalle</th>
                                 <th className="p-4">Género</th>
                                 <th className="p-4">Status</th>
                                 <th className="p-4 text-right">Costo</th>
-                                <th className="p-4 text-right">Precio</th>
+                                <th onClick={() => handleSort('precio')} className="p-4 text-right cursor-pointer hover:bg-gray-100 transition-colors select-none">Precio</th>
                                 <th className="p-4"></th>
                             </tr>
                         </thead>
@@ -225,6 +276,8 @@ const InventoryView = () => {
                                             <SafeImg src={p.imagen || 'https://via.placeholder.com/40'} className="w-full h-full object-contain" alt={p.modelo} />
                                         </div>
                                     </td>
+                                    {/* DATO DE FECHA */}
+                                    <td className="p-4 text-xs text-gray-500 whitespace-nowrap font-mono">{p.fecha || '-'}</td>
                                     <td className="p-4 font-mono font-bold text-gray-600 group-hover:text-brand-red transition-colors">{p.sku}</td>
                                     <td className="p-4">
                                         <div className="font-bold text-gray-800">{p.marca} {p.modelo}</div>
@@ -235,6 +288,8 @@ const InventoryView = () => {
                                         <span className={`text-[10px] px-2 py-1 rounded-full font-bold border ${p.status === 'Reemplazado' ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                             {p.status || 'Activo'}
                                         </span>
+                                        {/* INDICADOR DE COMPARTIDO */}
+                                        {p.compartido && <span className="ml-1 text-[10px] px-1 bg-blue-100 text-blue-600 rounded border border-blue-200" title="Compartido">📢</span>}
                                     </td>
                                     <td className="p-4 text-right text-gray-400 font-mono text-xs">{formatCurrency(p.costo)}</td>
                                     <td className="p-4 text-right font-bold text-gray-800">{formatCurrency(p.precio)}</td>
@@ -263,29 +318,18 @@ const InventoryView = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input type="date" label="Fecha" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-                        
-                        {/* --- CAMBIO: SmartSelect para Proveedores --- */}
-                        <SmartSelect 
-                            label="Proveedor" 
-                            value={form.proveedor_uid} 
-                            onChange={handleProviderChange} 
-                            options={providers} 
-                            displayProp="nombre" 
-                            valueProp="id" 
-                            placeholder="Buscar Proveedor..." 
-                        />
+                        <SmartSelect label="Proveedor" value={form.proveedor_uid} onChange={handleProviderChange} options={providers} displayProp="nombre" valueProp="id" placeholder="Buscar Proveedor..." />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="SKU" value={form.sku} readOnly className="bg-gray-100 font-mono font-bold text-gray-700 cursor-not-allowed" />
-                        {/* Estandarización: Usamos SmartSelect con lista fija */}
-<SmartSelect 
-    label="Género" 
-    value={form.genero} 
-    onChange={e => setForm({ ...form, genero: e.target.value })} 
-    options={['Unisex', 'Hombre', 'Mujer', 'Niños']} 
-    placeholder="Seleccionar..." 
-/>
+                        <SmartSelect 
+                            label="Género" 
+                            value={form.genero} 
+                            onChange={e => setForm({ ...form, genero: e.target.value })} 
+                            options={['Unisex', 'Hombre', 'Mujer', 'Niños']} 
+                            placeholder="Seleccionar..." 
+                        />
                     </div>
 
                     {/* ALERTA DE DUPLICADOS */}
@@ -298,23 +342,8 @@ const InventoryView = () => {
                     {replaceId && (<div className="bg-blue-50 border border-blue-200 p-3 rounded-xl text-xs text-blue-800 text-center font-bold">Sustituyendo producto existente. Se marcará como "Reemplazado".</div>)}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* --- CAMBIO: SmartSelect para Marca y Modelo --- */}
-                        <SmartSelect 
-                            label="Marca" 
-                            value={form.marca} 
-                            onChange={e => setForm({ ...form, marca: e.target.value })} 
-                            options={suggestions.brands} 
-                            placeholder="Escribe o selecciona..." 
-                            onCreate={(val) => setForm({...form, marca: val})} // Permitir nuevas
-                        />
-                        <SmartSelect 
-                            label="Modelo" 
-                            value={form.modelo} 
-                            onChange={e => setForm({ ...form, modelo: e.target.value })} 
-                            options={suggestions.models} 
-                            placeholder="Escribe o selecciona..." 
-                            onCreate={(val) => setForm({...form, modelo: val})} // Permitir nuevas
-                        />
+                        <SmartSelect label="Marca" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} options={suggestions.brands} placeholder="Marca..." onCreate={(val) => setForm({...form, marca: val})} />
+                        <SmartSelect label="Modelo" value={form.modelo} onChange={e => setForm({ ...form, modelo: e.target.value })} options={suggestions.models} placeholder="Modelo..." onCreate={(val) => setForm({...form, modelo: val})} />
                     </div>
                     <Input label="Nombre Genérico" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
                     
@@ -348,7 +377,7 @@ const InventoryView = () => {
                 </div>
             </Modal>
             
-            {/* MODAL DE REEMPLAZO Y COMPARACIÓN SE MANTIENEN IGUAL... */}
+            {/* MODAL DE REEMPLAZO Y COMPARACIÓN */}
             <Modal isOpen={replaceModalOpen} onClose={() => setReplaceModalOpen(false)} title="Productos Similares">
                 <div className="space-y-3">
                     <p className="text-sm text-gray-500">Selecciona un producto antiguo para reemplazarlo con este nuevo ingreso.</p>

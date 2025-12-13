@@ -8,21 +8,24 @@ import Icon from '../components/Icon';
 import { Input, NumberInput } from '../components/Inputs';
 
 const ConfigView = () => {
+    // 1. DATA FETCHING
     const { data: generalConfig } = useCollection('config_general');
     const { data: providers } = useCollection('proveedores');
     const { data: shipping } = useCollection('tarifas_envios');
     const { data: financeConfig } = useCollection('config_finanzas');
     const { data: lines } = useCollection('config_lineas');
     const { data: anomalyConfigs } = useCollection('config_novedades');
+    // NUEVO: Traemos los datos del remitente
+    const { data: remitenteData } = useCollection('config_remitente'); 
 
-    const [tab, setTab] = useState('providers');
+    const [tab, setTab] = useState('remitente'); // Iniciamos en remitente para que lo veas
     const { notify, confirmAction } = useUI();
 
-    // Estados de Formularios (Inicializados con strings vacíos para evitar undefined)
+    // 2. ESTADOS DE FORMULARIOS
     const [provForm, setProvForm] = useState({ nombre: '', id_custom: '', contacto: '', lineas: [] });
     const [shipForm, setShipForm] = useState({ ciudad: '', tarifa: '', tiene_acopio: false });
     
-    // CORRECCIÓN 1: Inicialización robusta
+    // Configuración General (Cloudinary)
     const [cloudForm, setCloudForm] = useState({ 
         cloud_name: '', 
         upload_preset: '', 
@@ -33,6 +36,9 @@ const ConfigView = () => {
         drive_folder_id: '' 
     });
     
+    // NUEVO: Estado para datos de Remitente
+    const [sender, setSender] = useState({ nombre: '', cedula: '', telefono: '' });
+
     const [lineName, setLineName] = useState('');
     const [catIngreso, setCatIngreso] = useState('');
     const [catGasto, setCatGasto] = useState('');
@@ -40,7 +46,7 @@ const ConfigView = () => {
     const [finConfigData, setFinConfigData] = useState({ ingresos: [], gastos: [], methods: [] });
     const [anomForm, setAnomForm] = useState({ motivo: '', accion: 'Devolver a Proveedor' });
 
-    // CORRECCIÓN 2: Cargar datos protegiendo contra undefined
+    // 3. CARGA DE DATOS (EFFECTS)
     useEffect(() => { 
         if (generalConfig && generalConfig.length > 0) {
             const data = generalConfig[0];
@@ -51,23 +57,50 @@ const ConfigView = () => {
                 cloudinary_transaction_folder: data.cloudinary_transaction_folder || '',
                 api_key: data.api_key || '',
                 api_secret: data.api_secret || '',
-                drive_folder_id: data.drive_folder_id || '' // Aquí estaba el error
+                drive_folder_id: data.drive_folder_id || '' 
             });
         }
     }, [generalConfig]);
 
     useEffect(() => { if (financeConfig.length) setFinConfigData(financeConfig[0]); }, [financeConfig]);
 
-    // --- FUNCIONES DE GUARDADO ---
+    // NUEVO: Cargar datos de remitente si existen
+    useEffect(() => {
+        if (remitenteData && remitenteData.length > 0) {
+            setSender(remitenteData[0]);
+        }
+    }, [remitenteData]);
+
+    // 4. FUNCIONES DE GUARDADO
+
+    // --- REMITENTE (NUEVO) ---
+    const handleSaveSender = async () => {
+        try {
+            if (remitenteData && remitenteData.length > 0) {
+                // Actualizar existente
+                await updateDoc(doc(db, 'config_remitente', remitenteData[0].id), sender);
+            } else {
+                // Crear nuevo
+                await addDoc(collection(db, 'config_remitente'), sender);
+            }
+            notify("Datos de remitente guardados correctamente");
+        } catch (e) { notify("Error: " + e.message, "error"); }
+    };
+
+    // --- LÍNEAS ---
     const saveLine = async () => { if (!lineName) return notify("Escribe un nombre", "error"); try { await addDoc(collection(db, 'config_lineas'), { nombre: lineName }); setLineName(''); notify("Línea agregada"); } catch (e) { notify(e.message, "error"); } };
     const deleteLine = (id) => confirmAction({ title: "Borrar Línea", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'config_lineas', id)); notify("Eliminada"); } });
+    
+    // --- PROVEEDORES ---
     const toggleProvLine = (linea) => { const currentLines = Array.isArray(provForm.lineas) ? provForm.lineas : []; if (currentLines.includes(linea)) setProvForm({ ...provForm, lineas: currentLines.filter(l => l !== linea) }); else setProvForm({ ...provForm, lineas: [...currentLines, linea] }); };
     const saveProvider = async () => { if (!provForm.nombre || !provForm.id_custom) return notify("Incompleto", "error"); try { const payload = { nombre: provForm.nombre, id_custom: provForm.id_custom.toUpperCase(), contacto: provForm.contacto, lineas: provForm.lineas }; if (provForm.id) await updateDoc(doc(db, 'proveedores', provForm.id), payload); else await addDoc(collection(db, 'proveedores'), payload); setProvForm({ nombre: '', id_custom: '', contacto: '', lineas: [] }); notify("Guardado"); } catch (e) { notify(e.message, "error"); } };
     const deleteProvider = (id) => confirmAction({ title: "Eliminar", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'proveedores', id)); notify("Eliminado"); } });
+    
+    // --- ENVÍOS ---
     const saveShipping = async () => { if (!shipForm.ciudad || !shipForm.tarifa) return notify("Incompleto", "error"); try { const payload = { ciudad: shipForm.ciudad, tarifa: Number(shipForm.tarifa), tiene_acopio: shipForm.tiene_acopio }; if (shipForm.id) await updateDoc(doc(db, 'tarifas_envios', shipForm.id), payload); else await addDoc(collection(db, 'tarifas_envios'), payload); setShipForm({ ciudad: '', tarifa: '', tiene_acopio: false }); notify("Guardado"); } catch (e) { notify(e.message, "error"); } };
     const deleteShipping = (id) => confirmAction({ title: "Eliminar", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'tarifas_envios', id)); notify("Eliminado"); } });
     
-    // CORRECCIÓN 3: Guardar datos asegurando strings vacíos
+    // --- GENERAL (NUBE) ---
     const saveGeneral = async () => { 
         try { 
             const payload = { 
@@ -92,13 +125,14 @@ const ConfigView = () => {
         } 
     };
 
+    // --- FINANZAS ---
     const updateFinConfig = async (newData) => { try { if (financeConfig.length) await updateDoc(doc(db, 'config_finanzas', financeConfig[0].id), newData); else await addDoc(collection(db, 'config_finanzas'), newData); } catch (e) { notify(e.message, "error"); } };
     const addCategory = (type, val) => { if (!val) return; const list = type === 'ingreso' ? [...(finConfigData.ingresos || [])] : [...(finConfigData.gastos || [])]; if (!list.includes(val)) { list.push(val); updateFinConfig(type === 'ingreso' ? { ingresos: list } : { gastos: list }); } if (type === 'ingreso') setCatIngreso(''); else setCatGasto(''); };
     const removeCategory = (type, val) => { const list = type === 'ingreso' ? (finConfigData.ingresos || []) : (finConfigData.gastos || []); updateFinConfig(type === 'ingreso' ? { ingresos: list.filter(x => x !== val) } : { gastos: list.filter(x => x !== val) }); };
     const addMethod = () => { if (!payMethod.name) return; const list = [...(finConfigData.methods || [])]; list.push(payMethod); updateFinConfig({ methods: list }); setPayMethod({ name: '', isBank: false }); };
     const removeMethod = (idx) => { const list = [...(finConfigData.methods || [])]; list.splice(idx, 1); updateFinConfig({ methods: list }); };
     
-    // Novedades
+    // --- NOVEDADES ---
     const saveAnomaly = async () => {
         if (!anomForm.motivo) return notify("Falta el motivo", "error");
         try {
@@ -109,7 +143,7 @@ const ConfigView = () => {
     };
     const deleteAnomaly = (id) => confirmAction({ title: "Eliminar Motivo", message: "¿Seguro?", onConfirm: async () => { await deleteDoc(doc(db, 'config_novedades', id)); notify("Eliminado"); } });
 
-    // Cierre de sesión auxiliar
+    // --- LOGOUT ---
     const handleLogout = async () => { 
         try {
             const { signOut, auth } = await import('../lib/firebase');
@@ -122,6 +156,7 @@ const ConfigView = () => {
             {/* NAVIGATION TABS */}
             <div className="sticky top-0 bg-[#f3f4f6] z-30 flex gap-2 border-b border-slate-200 pb-1 overflow-x-auto w-full scrollbar-hide pt-2">
                 {[
+                    { id: 'remitente', label: 'Remitente', icon: 'User' }, // <--- NUEVA PESTAÑA PRIMERO
                     { id: 'providers', label: 'Proveedores', icon: 'Truck' },
                     { id: 'lines', label: 'Líneas', icon: 'Tag' },
                     { id: 'shipping', label: 'Envíos', icon: 'Map' },
@@ -144,6 +179,24 @@ const ConfigView = () => {
                     </button>
                 ))}
             </div>
+
+            {/* SECCIÓN: REMITENTE (NUEVO) */}
+            {tab === 'remitente' && (
+                <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-card border border-gray-100">
+                    <h3 className="font-bold mb-6 flex items-center gap-2 text-gray-800 text-lg">
+                        <Icon name="User" className="text-indigo-500"/> Datos del Remitente
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-6 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                        Estos datos se cargarán automáticamente cuando generes rótulos de envío para tus proveedores.
+                    </p>
+                    <div className="space-y-5">
+                        <Input label="Nombre / Empresa" value={sender.nombre} onChange={e => setSender({...sender, nombre: e.target.value})} placeholder="Tu Nombre o Marca" />
+                        <Input label="Cédula / NIT" value={sender.cedula} onChange={e => setSender({...sender, cedula: e.target.value})} placeholder="Para la guía de transporte" />
+                        <Input label="Teléfono" value={sender.telefono} onChange={e => setSender({...sender, telefono: e.target.value})} placeholder="Contacto" />
+                    </div>
+                    <Button onClick={handleSaveSender} className="w-full mt-8 bg-brand-dark h-12">Guardar Datos de Remitente</Button>
+                </div>
+            )}
 
             {/* SECCIÓN: LÍNEAS */}
             {tab === 'lines' && (

@@ -17,6 +17,7 @@ export const DataProvider = ({ children }) => {
     const { data: anomalyConfigData } = useCollection('config_novedades');
     const { data: generalConfig } = useCollection('config_general');
     const { data: lines } = useCollection('config_lineas');
+    const { data: remitenteData } = useCollection('config_remitente');
 
     const financeConfig = financeConfigData[0] || { methods: [] };
     const cloudConfig = generalConfig?.[0] || {};
@@ -35,6 +36,7 @@ export const DataProvider = ({ children }) => {
         financeConfig,
         cloudConfig,
         anomalyConfigData,
+        remitenteData,
         loading
     };
 

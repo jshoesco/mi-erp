@@ -35,22 +35,23 @@ export const compressImage = (file) => {
     });
 };
 
-export const uploadToCloudinary = async (file, config, publicId, folderOverride) => {
-    if (!config.cloud_name || !config.upload_preset) throw new Error("Falta configuración de Cloudinary");
-    
-    const compressedFile = await compressImage(file);
+export const uploadToCloudinary = async (file, config, customName = null) => {
     const formData = new FormData();
-    formData.append('file', compressedFile);
+    formData.append('file', file);
     formData.append('upload_preset', config.upload_preset);
-    
-    const folder = folderOverride || config.cloudinary_folder;
-    if (folder) formData.append('folder', folder);
-    if (publicId) formData.append('public_id', publicId);
-    
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${config.cloud_name}/image/upload`, { method: 'POST', body: formData });
-    if (!res.ok) throw new Error("Error subiendo imagen");
-    
-    return await res.json();
+
+    // Si pasamos el SKU, Cloudinary lo usará como nombre de archivo (public_id)
+    if (customName) {
+        formData.append('public_id', customName);
+    }
+
+    const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${config.cloud_name}/image/upload`,
+        { method: 'POST', body: formData }
+    );
+
+    if (!res.ok) throw new Error('Error al subir a Cloudinary');
+    return res.json();
 };
 
 export const generateSignature = async (params, apiSecret) => {

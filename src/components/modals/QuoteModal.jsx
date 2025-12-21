@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import { Input, NumberInput, Select } from '../ui/Inputs';
+import { Input, NumberInput, Select } from '../ui/Input';
 import ImageUploader from '../ui/ImageUploader';
 import Icon from '../ui/Icon';
 import SmartSelect from '../ui/SmartSelect';

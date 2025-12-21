@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../ui/Modal';
 import Button from '../../ui/Button';
-import { Input } from '../../ui/Inputs';
+import { Input } from '../../ui/Input';
 import ImageUploader from '../../ui/ImageUploader';
 import { useUI } from '../../../context/UIContext';
 import { useData } from '../../../context/DataContext';

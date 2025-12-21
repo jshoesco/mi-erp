@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../../ui/Modal';
 import Button from '../../ui/Button';
-import { Input } from '../../ui/Inputs';
+import { Input } from '../../ui/Input';
 import { formatCurrency } from '../../../lib/utils';
 import { db } from '../../../lib/firebase';
 import { doc, writeBatch, getDoc } from 'firebase/firestore';

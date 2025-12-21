@@ -1,6 +1,5 @@
 import { initializeApp } from "firebase/app";
 import { 
-  getFirestore, 
   initializeFirestore, 
   collection, 
   addDoc, 
@@ -23,8 +22,6 @@ import {
   onAuthStateChanged 
 } from "firebase/auth";
 
-// ... (imports anteriores siguen igual)
-
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -34,17 +31,18 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Inicializar Firebase
+// 1. Inicializar la App
 const app = initializeApp(firebaseConfig);
 
-// Inicializar Firestore con la configuración para evitar errores de conexión
+// 2. Inicializar Firestore (SOLO UNA VEZ) con el fix de Long Polling
 const db = initializeFirestore(app, {
-    experimentalForceLongPolling: true
+  experimentalForceLongPolling: true,
 });
 
+// 3. Inicializar Auth
 const auth = getAuth(app);
 
-// Exportamos las herramientas para usarlas en los otros archivos
+// 4. Exportar TODO de un solo golpe
 export { 
   db, 
   auth, 

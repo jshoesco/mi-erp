@@ -6,7 +6,7 @@ import { DataProvider } from './context/DataContext';
 // VISTAS
 import LoginScreen from './views/LoginScreen';
 import OrdersView from './components/orders/OrdersView';
-import InventoryView from './views/InventoryView';
+import InventoryView from '../src/components/inventory/InventoryView';
 import FinanzasView from './views/FinanzasView';
 import ConfigView from './views/ConfigView';
 import ShareView from './views/ShareView';

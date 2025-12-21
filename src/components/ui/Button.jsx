@@ -1,18 +1,12 @@
+import React from 'react';
 import Icon from './Icon';
 
 const Button = ({ children, onClick, variant = 'primary', className = "", disabled = false, icon = null, title = "" }) => {
     const styles = {
-        // Rojo intenso con sombra roja, estilo marca
-        primary: "bg-brand-red text-white hover:bg-red-700 shadow-lg shadow-brand-red/30 border border-transparent",
-        
-        // Blanco limpio con borde suave
-        secondary: "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm",
-        
-        // Rojo suave para borrar (ahora consistente con la marca)
-        danger: "bg-white text-brand-red border border-red-200 hover:bg-red-50 hover:border-brand-red/30",
-        
-        // Verde esmeralda para éxito
-        success: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30 border border-transparent"
+        primary: "bg-brand-red text-white hover:bg-red-600 shadow-xl shadow-brand-red/20",
+        secondary: "bg-white text-gray-600 border border-gray-100 hover:bg-gray-50 hover:border-gray-200 shadow-sm",
+        danger: "bg-red-50 text-red-600 hover:bg-red-100",
+        success: "bg-emerald-500 text-white hover:bg-emerald-600 shadow-xl shadow-emerald-500/20"
     };
 
     return (
@@ -21,14 +15,14 @@ const Button = ({ children, onClick, variant = 'primary', className = "", disabl
             disabled={disabled} 
             title={title} 
             className={`
-                px-5 py-2.5 rounded-xl font-semibold text-sm 
-                flex items-center justify-center gap-2 
-                transition-all duration-200 active:scale-95 
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100
+                px-7 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest
+                flex items-center justify-center gap-2.5 
+                transition-all duration-300 active:scale-95 
+                disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
                 ${styles[variant]} ${className}
             `}
         >
-            {icon && <Icon name={icon} size={18} />}
+            {icon && <Icon name={icon} size={16} />}
             {children}
         </button>
     );

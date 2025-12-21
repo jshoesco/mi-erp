@@ -5,7 +5,7 @@ import { db, doc, addDoc, updateDoc, deleteDoc, collection } from '../lib/fireba
 import { formatCurrency } from '../lib/utils';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
-import { Input, NumberInput } from '../components/ui/Inputs';
+import { Input, NumberInput } from '../components/ui/Input';
 
 const ConfigView = () => {
     // 1. DATA FETCHING

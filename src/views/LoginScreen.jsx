@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { auth, signInWithEmailAndPassword } from '../lib/firebase';
 import Button from '../components/ui/Button';
-import { Input } from '../components/ui/Inputs';
+import { Input } from '../components/ui/Input';
 import Icon, { Spinner } from '../components/ui/Icon';
 
 const LoginScreen = () => {

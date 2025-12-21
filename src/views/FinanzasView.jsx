@@ -6,7 +6,7 @@ import { formatCurrency, uploadToCloudinary } from '../lib/utils';
 import Button from '../components/ui/Button';
 import Icon, { Spinner } from '../components/ui/Icon';
 import Modal from '../components/ui/Modal';
-import { Input, NumberInput } from '../components/ui/Inputs';
+import { Input, NumberInput } from '../components/ui/Input';
 import SmartSelect from '../components/ui/SmartSelect';
 import ImageUploader from '../components/ui/ImageUploader';
 import BulkActions from '../components/BulkActions';

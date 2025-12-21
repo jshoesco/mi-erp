@@ -50,3 +50,5 @@ export const Select = ({ label, children, ...props }) => (
         </div>
     </div>
 );
+
+export default Input;

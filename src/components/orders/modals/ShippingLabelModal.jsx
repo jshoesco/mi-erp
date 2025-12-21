@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../ui/Modal';
 import Button from '../../ui/Button';
-import { Input } from '../../ui/Inputs';
+import { Input } from '../../ui/Input'; // CORREGIDO: Sin 's' al final
+import Checkbox from '../../ui/Checkbox'; // Añadido para consistencia
 import Icon from '../../ui/Icon';
 import SafeImg from '../../ui/SafeImg';
 import { useUI } from '../../../context/UIContext';
@@ -11,9 +12,9 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
     const { notify } = useUI();
     const [saving, setSaving] = useState(false);
     const [generatingCollage, setGeneratingCollage] = useState(false);
-    
+
     // ESTADOS DE VISTA
-    const [viewMode, setViewMode] = useState('gallery'); 
+    const [viewMode, setViewMode] = useState('gallery');
     const [recipient, setRecipient] = useState({ nombre: '', cedula: '', telefono: '', direccion: '', ciudad: '' });
     const [sender, setSender] = useState({ nombre: '', cedula: '', telefono: '' });
     const [useDefaultSender, setUseDefaultSender] = useState(true);
@@ -25,9 +26,9 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
             const savedShipping = mainItem.shippingData;
             setRecipient({
                 nombre: savedShipping?.nombre || mainItem.clientName || '',
-                cedula: savedShipping?.cedula || '', 
-                telefono: savedShipping?.telefono || mainItem.clientPhone || '', 
-                direccion: savedShipping?.direccion || mainItem.clientAddress || '', 
+                cedula: savedShipping?.cedula || '',
+                telefono: savedShipping?.telefono || mainItem.clientPhone || '',
+                direccion: savedShipping?.direccion || mainItem.clientAddress || '',
                 ciudad: savedShipping?.ciudad || mainItem.clientCity || ''
             });
             if (defaultSender) setSender(defaultSender);
@@ -39,7 +40,7 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
         setSaving(true);
         try {
             const orderIds = [...new Set(items.map(it => it.orderId))];
-            await Promise.all(orderIds.map(id => 
+            await Promise.all(orderIds.map(id =>
                 updateDoc(doc(db, 'pedidos', id), {
                     datos_envio: {
                         nombre: recipient.nombre,
@@ -94,7 +95,7 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
             // 1. FILTRAR DUPLICADOS (Mismo SKU = 1 sola foto)
             const uniqueItems = [];
             const seenSkus = new Set();
-            
+
             items.forEach(item => {
                 const identifier = item.sku || item.id; // Preferencia al SKU
                 if (!seenSkus.has(identifier) && item.imagen) {
@@ -120,17 +121,15 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
             const count = validImages.length;
 
             // --- AQUÍ ESTÁ LA MAGIA MATEMÁTICA ---
-            // Si son pocos, usamos 2 columnas. Si son bastantes, 3. Si son muchísimos, 4.
-            // Esto evita que la imagen sea un "fideo" largo hacia abajo.
             let cols = 2;
             if (count === 1) cols = 1;
             else if (count >= 5 && count <= 9) cols = 3;
             else if (count >= 10) cols = 4;
 
             const rows = Math.ceil(count / cols);
-            
+
             // Tamaño de cada celda (Calidad alta para zoom)
-            const cellWidth = 350; 
+            const cellWidth = 350;
             const cellHeight = 350;
             const gap = 15; // Espacio blanco entre fotos
             const padding = 20; // Marco blanco alrededor de todo
@@ -148,7 +147,7 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
             validImages.forEach((img, i) => {
                 const col = i % cols;
                 const row = Math.floor(i / cols);
-                
+
                 const x = padding + (col * (cellWidth + gap));
                 const y = padding + (row * (cellHeight + gap));
 
@@ -160,8 +159,8 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
                 const offsetY = (cellHeight - h) / 2;
 
                 ctx.drawImage(img, x + offsetX, y + offsetY, w, h);
-                
-                // Opcional: Dibujar un borde gris finito alrededor de cada foto para que no se mezclen
+
+                // Opcional: Dibujar un borde gris finito alrededor de cada foto
                 ctx.strokeStyle = "#e5e7eb";
                 ctx.lineWidth = 1;
                 ctx.strokeRect(x, y, cellWidth, cellHeight);
@@ -199,31 +198,31 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Preparar Envío">
             <div className="flex flex-col gap-6">
-                
+
                 {/* SECCIÓN VISUAL (GALERÍA) */}
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 transition-all">
+                <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-100 transition-all">
                     <div className="flex justify-between items-center mb-3">
-                        <h4 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2">
-                            <Icon name="Grid" size={16}/> Resumen Visual ({items.length})
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Icon name="Grid" size={14} /> Resumen Visual ({items.length})
                         </h4>
-                        
+
                         <div className="flex gap-2">
                             {/* BOTÓN COLLAGE (LA ESTRELLA) */}
                             {items.length > 0 && (
-                                <button 
+                                <button
                                     onClick={handleCopyCollage}
                                     disabled={generatingCollage}
-                                    className="text-[10px] bg-indigo-600 text-white px-3 py-1.5 rounded hover:bg-indigo-700 font-bold flex items-center gap-1 transition-colors shadow-sm disabled:opacity-50"
+                                    className="text-[9px] bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm disabled:opacity-50"
                                 >
-                                    {generatingCollage ? <Icon name="Loader" className="animate-spin" size={12}/> : <Icon name="Camera" size={12}/>} 
-                                    {generatingCollage ? 'Generando...' : 'Copiar Collage Resumen'}
+                                    {generatingCollage ? <Icon name="Loader" className="animate-spin" size={12} /> : <Icon name="Camera" size={12} />}
+                                    {generatingCollage ? 'Generando...' : 'Copiar Collage'}
                                 </button>
                             )}
-                            
+
                             {/* SWITCH DE VISTA */}
-                            <div className="flex bg-white rounded-lg border border-gray-200 p-0.5 shadow-sm">
-                                <button onClick={() => setViewMode('gallery')} className={`px-2 py-1 rounded-md transition-colors ${viewMode === 'gallery' ? 'bg-gray-100 text-indigo-600' : 'text-gray-400'}`}><Icon name="Grid" size={14}/></button>
-                                <button onClick={() => setViewMode('list')} className={`px-2 py-1 rounded-md transition-colors ${viewMode === 'list' ? 'bg-gray-100 text-indigo-600' : 'text-gray-400'}`}><Icon name="List" size={14}/></button>
+                            <div className="flex bg-white rounded-lg border border-gray-100 p-0.5 shadow-sm">
+                                <button onClick={() => setViewMode('gallery')} className={`px-2 py-1 rounded-md transition-colors ${viewMode === 'gallery' ? 'bg-gray-100 text-indigo-600' : 'text-gray-400'}`}><Icon name="Grid" size={14} /></button>
+                                <button onClick={() => setViewMode('list')} className={`px-2 py-1 rounded-md transition-colors ${viewMode === 'list' ? 'bg-gray-100 text-indigo-600' : 'text-gray-400'}`}><Icon name="List" size={14} /></button>
                             </div>
                         </div>
                     </div>
@@ -232,13 +231,13 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
                     {viewMode === 'gallery' && (
                         <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                             {items.map((it, i) => (
-                                <div key={i} className="group relative aspect-square bg-white rounded-lg border border-gray-200 hover:border-indigo-400 transition-all overflow-hidden">
-                                    <SafeImg src={it.imagen} className="w-full h-full object-cover"/>
-                                    <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-100 p-1 text-center">
-                                        <div className="font-bold text-gray-800 text-[9px] truncate">{it.modelo}</div>
+                                <div key={i} className="group relative aspect-square bg-white rounded-lg border border-gray-100 hover:border-indigo-400 transition-all overflow-hidden shadow-sm">
+                                    <SafeImg src={it.imagen} className="w-full h-full object-cover" />
+                                    <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-50 p-1 text-center">
+                                        <div className="font-bold text-gray-800 text-[9px] truncate uppercase">{it.modelo}</div>
                                         <div className="font-mono font-bold text-indigo-600 text-[9px]">T: {it.talla}</div>
                                     </div>
-                                    <button onClick={() => copyImageSecure(it.imagen)} className="absolute top-1 right-1 p-1.5 bg-white/90 rounded-full shadow-sm text-gray-600 hover:text-brand-red opacity-0 group-hover:opacity-100 transition-opacity" title="Copiar Solo Esta"><Icon name="Copy" size={12}/></button>
+                                    <button onClick={() => copyImageSecure(it.imagen)} className="absolute top-1 right-1 p-1.5 bg-white/90 rounded-full shadow-sm text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-all transform scale-90 group-hover:scale-100"><Icon name="Copy" size={12} /></button>
                                 </div>
                             ))}
                         </div>
@@ -248,10 +247,10 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
                     {viewMode === 'list' && (
                         <div className="space-y-2">
                             {items.map((it, i) => (
-                                <div key={i} className="flex gap-3 items-center bg-white p-2 rounded-lg border border-gray-100">
-                                    <div className="h-10 w-10 bg-gray-100 rounded border border-gray-200 overflow-hidden"><SafeImg src={it.imagen} className="w-full h-full object-cover"/></div>
+                                <div key={i} className="flex gap-3 items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                    <div className="h-10 w-10 bg-gray-100 rounded border border-gray-200 overflow-hidden"><SafeImg src={it.imagen} className="w-full h-full object-cover" /></div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="font-bold text-gray-800 text-xs truncate">{it.modelo}</div>
+                                        <div className="font-bold text-gray-800 text-xs truncate uppercase">{it.modelo}</div>
                                         <div className="text-[10px] text-gray-500">Talla: {it.talla}</div>
                                     </div>
                                 </div>
@@ -263,47 +262,50 @@ const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
                 {/* FORMULARIO DE DATOS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* DESTINATARIO */}
-                    <div className="space-y-3 relative">
-                        <div className="flex justify-between items-end border-b border-emerald-100 pb-1">
-                            <h4 className="text-xs font-bold text-emerald-600 uppercase">Destinatario</h4>
-                            <button onClick={handleSaveRecipientData} disabled={saving} className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 font-bold flex items-center gap-1 transition-colors">
-                                {saving ? <Icon name="Loader" className="animate-spin" size={10}/> : <Icon name="Save" size={10}/>} Guardar
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                            <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Destinatario</h4>
+                            <button onClick={handleSaveRecipientData} disabled={saving} className="text-[9px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg hover:bg-emerald-100 font-bold flex items-center gap-1 transition-colors">
+                                {saving ? <Icon name="Loader" className="animate-spin" size={10} /> : <Icon name="Save" size={10} />} Guardar
                             </button>
                         </div>
-                        <Input label="Nombre" value={recipient.nombre} onChange={e => setRecipient({...recipient, nombre: e.target.value})} />
-                        <div className="grid grid-cols-2 gap-2">
-                            <Input label="Cédula/CC" value={recipient.cedula} onChange={e => setRecipient({...recipient, cedula: e.target.value})} placeholder="Requerido" />
-                            <Input label="Teléfono" value={recipient.telefono} onChange={e => setRecipient({...recipient, telefono: e.target.value})} />
+                        <Input label="Nombre Completo" value={recipient.nombre} onChange={e => setRecipient({ ...recipient, nombre: e.target.value })} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Cédula / NIT" value={recipient.cedula} onChange={e => setRecipient({ ...recipient, cedula: e.target.value })} placeholder="Requerido" />
+                            <Input label="Teléfono" value={recipient.telefono} onChange={e => setRecipient({ ...recipient, telefono: e.target.value })} />
                         </div>
-                        <Input label="Dirección" value={recipient.direccion} onChange={e => setRecipient({...recipient, direccion: e.target.value})} />
-                        <Input label="Ciudad" value={recipient.ciudad} onChange={e => setRecipient({...recipient, ciudad: e.target.value})} />
+                        <Input label="Dirección Exacta" value={recipient.direccion} onChange={e => setRecipient({ ...recipient, direccion: e.target.value })} />
+                        <Input label="Ciudad / Depto" value={recipient.ciudad} onChange={e => setRecipient({ ...recipient, ciudad: e.target.value })} />
                     </div>
 
                     {/* REMITENTE */}
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center border-b border-indigo-100 pb-1">
-                            <h4 className="text-xs font-bold text-indigo-600 uppercase">Remitente</h4>
-                            <div className="flex items-center gap-2">
-                                <label className="text-[10px] text-gray-500 font-bold cursor-pointer">Usar Guardado</label>
-                                <input type="checkbox" checked={useDefaultSender} onChange={e => {
-                                    setUseDefaultSender(e.target.checked);
-                                    if(e.target.checked && defaultSender) setSender(defaultSender);
-                                    else setSender({nombre:'', cedula:'', telefono:''});
-                                }} className="accent-indigo-600 cursor-pointer"/>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center pb-2 border-b border-gray-50">
+                            <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Remitente</h4>
+                            <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                <Checkbox
+                                    checked={useDefaultSender}
+                                    onChange={() => {
+                                        setUseDefaultSender(!useDefaultSender);
+                                        if (!useDefaultSender && defaultSender) setSender(defaultSender);
+                                        else setSender({ nombre: '', cedula: '', telefono: '' });
+                                    }}
+                                />
+                                <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wide cursor-pointer" onClick={() => setUseDefaultSender(!useDefaultSender)}>Usar Predeterminado</span>
                             </div>
                         </div>
-                        <Input label="Nombre" value={sender.nombre} onChange={e => setSender({...sender, nombre: e.target.value})} disabled={useDefaultSender} />
-                        <div className="grid grid-cols-2 gap-2">
-                            <Input label="Cédula/CC" value={sender.cedula} onChange={e => setSender({...sender, cedula: e.target.value})} disabled={useDefaultSender} />
-                            <Input label="Teléfono" value={sender.telefono} onChange={e => setSender({...sender, telefono: e.target.value})} disabled={useDefaultSender} />
+                        <Input label="Nombre" value={sender.nombre} onChange={e => setSender({ ...sender, nombre: e.target.value })} disabled={useDefaultSender} />
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input label="Cédula" value={sender.cedula} onChange={e => setSender({ ...sender, cedula: e.target.value })} disabled={useDefaultSender} />
+                            <Input label="Teléfono" value={sender.telefono} onChange={e => setSender({ ...sender, telefono: e.target.value })} disabled={useDefaultSender} />
                         </div>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <Button variant="secondary" onClick={onClose}>Cerrar</Button>
-                    <Button onClick={copyFullInfo} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center gap-2">
-                        <Icon name="Clipboard" size={18}/> Copiar Todo para WhatsApp
+                <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+                    <Button variant="secondary" onClick={onClose} className="text-[10px]">Cerrar</Button>
+                    <Button onClick={copyFullInfo} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200 flex items-center gap-2 px-6 h-12 text-[10px] font-black uppercase tracking-widest">
+                        <Icon name="Clipboard" size={16} /> Copiar Todo (WhatsApp)
                     </Button>
                 </div>
             </div>

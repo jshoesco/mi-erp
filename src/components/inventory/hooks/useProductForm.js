@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useUpload } from '../../../hooks/useUpload';
 
 export const useProductForm = (initialData, isOpen, allProducts = []) => {
     const [formData, setFormData] = useState({
@@ -8,6 +9,7 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
     });
 
     const originalSkuRef = useRef(null);
+    const { uploadImage, loading: uploading } = useUpload();
 
     const availableBrands = useMemo(() => {
         const brands = allProducts.map(p => p.marca?.toUpperCase()).filter(Boolean);
@@ -44,20 +46,22 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
             setFormData(prev => ({ ...prev, [field]: '' }));
             return;
         }
-
         const newValue = Number(value);
         const currentCosto = Number(formData.costo || 0);
         let updates = { [field]: newValue };
-
-        if (field === 'ganancia' && currentCosto > 0) {
-            updates.precio = currentCosto + newValue;
-        } 
-        else if (field === 'precio' && currentCosto > 0) {
-            updates.ganancia = newValue - currentCosto;
-        }
-
+        if (field === 'ganancia' && currentCosto > 0) updates.precio = currentCosto + newValue;
+        else if (field === 'precio' && currentCosto > 0) updates.ganancia = newValue - currentCosto;
         setFormData(prev => ({ ...prev, ...updates }));
     };
 
-    return { formData, setFormData, handlePricing, originalSkuRef, availableBrands, availableModels };
+    const handleImageUpload = async (file) => {
+        if (!file) return setFormData(prev => ({ ...prev, imagen: '' }));
+        const url = await uploadImage(file, formData.sku);
+        if (url) setFormData(prev => ({ ...prev, imagen: url }));
+    };
+
+    return { 
+        formData, setFormData, handlePricing, handleImageUpload, 
+        uploading, originalSkuRef, availableBrands, availableModels 
+    };
 };

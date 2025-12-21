@@ -11,7 +11,6 @@ import FinanzasView from './views/FinanzasView';
 import ConfigView from './views/ConfigView';
 import ShareView from './views/ShareView';
 import AlertsView from './views/AlertsView';
-import QuotesView from './views/QuotesView';
 import DashboardView from './views/DashboardView';
 // ELIMINÉ LAS IMPORTACIONES QUE DABAN ERROR
 
@@ -52,13 +51,12 @@ const App = () => {
 
                         <nav className="flex-1 py-6 px-3 space-y-2 overflow-y-auto">
                             <MenuButton icon="LayoutDashboard" label="Inicio" active={view === 'dashboard'} isOpen={isSidebarOpen} onClick={() => setView('dashboard')} />
-                            <MenuButton icon="HelpCircle" label="Cotizaciones" active={view === 'quotes'} isOpen={isSidebarOpen} onClick={() => setView('quotes')} />
                             <MenuButton icon="ShoppingCart" label="Pedidos" active={view === 'orders'} isOpen={isSidebarOpen} onClick={() => setView('orders')} />
                             <MenuButton icon="Package" label="Inventario" active={view === 'inventory'} isOpen={isSidebarOpen} onClick={() => setView('inventory')} />
                             <MenuButton icon="Banknote" label="Finanzas" active={view === 'finanzas'} isOpen={isSidebarOpen} onClick={() => setView('finanzas')} />
                             <MenuButton icon="Share2" label="Social / MKT" active={view === 'share'} isOpen={isSidebarOpen} onClick={() => setView('share')} />
                             <MenuButton icon="Activity" label="Control Calidad" active={view === 'alerts'} isOpen={isSidebarOpen} onClick={() => setView('alerts')} />
-                            
+
                             <div className="pt-6 mt-6 border-t border-gray-800/50">
                                 <MenuButton icon="Settings" label="Configuración" active={view === 'config'} isOpen={isSidebarOpen} onClick={() => setView('config')} />
                             </div>
@@ -105,7 +103,7 @@ const App = () => {
                                 {view === 'dashboard' && <DashboardView setView={setView} />}
                                 {view === 'quotes' && <QuotesView />}
                                 {view === 'orders' && <OrdersView />}
-                                
+
                                 {/* AQUÍ ESTÁ EL ARREGLO PARA QUE FUNCIONE EL INVENTARIO */}
                                 {view === 'inventory' && (
                                     <InventoryView

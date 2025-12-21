@@ -13,6 +13,7 @@ import {
   writeBatch, 
   where, 
   getDoc, 
+  setDoc,
   runTransaction 
 } from "firebase/firestore";
 import { 
@@ -58,6 +59,7 @@ export {
   writeBatch, 
   where, 
   getDoc, 
+  setDoc,
   runTransaction,
   signInWithEmailAndPassword, 
   signOut, 

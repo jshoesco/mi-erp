@@ -10,11 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tabler/icons-react": "^3.36.0",
     "crypto-js": "^4.2.0",
     "firebase": "^12.6.0",
     "lucide-react": "^0.556.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-dropzone": "^14.3.8",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

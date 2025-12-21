@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { auth, signInWithEmailAndPassword } from '../lib/firebase';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import Icon, { Spinner } from '../components/ui/Icon';
+import Icon from '../components/ui/Icon';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');
@@ -37,18 +37,33 @@ const LoginScreen = () => {
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-4">
-                        <Input type="email" placeholder="Correo electrónico" value={email} onChange={e => setEmail(e.target.value)} />
-                        <Input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} />
+                        <Input
+                            type="email"
+                            placeholder="CORREO ELECTRÓNICO"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            autoFocus
+                        />
+                        <Input
+                            type="password"
+                            placeholder="CONTRASEÑA"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                        />
                     </div>
-                    
+
                     {error && (
                         <div className="text-brand-red text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-100 flex gap-2 items-center animate-pulse">
                             <Icon name="AlertTriangle" size={16} /> {error}
                         </div>
                     )}
-                    
-                    <Button className="w-full h-14 text-lg bg-brand-red hover:bg-red-700 shadow-xl shadow-red-500/30" disabled={loading}>
-                        {loading ? <div className="flex items-center gap-2"><Spinner /> Entrando...</div> : "Iniciar Sesión"}
+
+                    <Button
+                        className="w-full h-14 text-sm uppercase font-black tracking-widest bg-brand-red hover:bg-red-700 shadow-xl shadow-red-500/30"
+                        isLoading={loading}
+                        onClick={handleLogin} // Aseguramos que el botón dispare el submit si no es type submit explícito
+                    >
+                        Iniciar Sesión
                     </Button>
                 </form>
             </div>

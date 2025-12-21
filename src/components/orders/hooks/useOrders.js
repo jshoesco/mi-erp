@@ -12,16 +12,21 @@ export const useOrders = () => {
     const [searchText, setSearchText] = useState('');
     const [selection, setSelection] = useState({ mode: false, ids: [] });
     const [isDeleting, setIsDeleting] = useState(false);
-    
-    const [modals, setModals] = useState({ 
-        form: { open: false, data: null }, 
-        link: { open: false, data: null }, 
-        guide: { open: false, data: null }, 
-        payment: { open: false, data: [] }, 
-        anomaly: { open: false, data: null } 
+
+    // AQUI ESTABA EL ERROR: Faltaban llaves
+    const [modals, setModals] = useState({
+        form: { open: false, data: null },
+        link: { open: false, data: null },
+        guide: { open: false, data: null },
+        payment: { open: false, data: [] },
+        anomaly: { open: false, data: null },
+        // AGREGADOS:
+        delivery: { open: false, data: null },
+        clientPay: { open: false, data: null },
+        resell: { open: false, data: null },
+        shippingLabel: { open: false, data: [] }
     });
 
-    // CABLEADO: Pasamos searchText a ambos helpers y lo ponemos en dependencias
     const kanbanData = useMemo(() => ({
         sales: getSalesKanban(orders, searchText),
         logistics: getLogisticsKanban(orders, searchText)
@@ -45,9 +50,9 @@ export const useOrders = () => {
         }
     };
 
-    return { 
-        orders, loading, tab, searchText, setSearchText, selection, 
-        isDeleting, modals, kanbanData, ui, 
-        config: { financeMethods: financeConfig?.methods || [], anomalyReasons: anomalyConfigData } 
+    return {
+        orders, loading, tab, searchText, setSearchText, selection,
+        isDeleting, modals, kanbanData, ui,
+        config: { financeMethods: financeConfig?.methods || [], anomalyReasons: anomalyConfigData }
     };
 };

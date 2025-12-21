@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Modal from './Modal';
-import SafeImg from './SafeImg';
-import Button from './Button';
+import Modal from './ui/Modal';
+import SafeImg from './ui/SafeImg';
+import Button from './ui/Button';
 
 const ReplaceManager = ({ 
     isOpen, 

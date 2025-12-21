@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { auth, signInWithEmailAndPassword } from '../lib/firebase';
-import Button from '../components/Button';
-import { Input } from '../components/Inputs';
-import Icon, { Spinner } from '../components/Icon';
+import Button from '../components/ui/Button';
+import { Input } from '../components/ui/Inputs';
+import Icon, { Spinner } from '../components/ui/Icon';
 
 const LoginScreen = () => {
     const [email, setEmail] = useState('');

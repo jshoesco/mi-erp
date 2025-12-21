@@ -3,7 +3,7 @@ import Modal from '../Modal';
 import Button from '../Button';
 import { Input, NumberInput, Select } from '../Inputs';
 import SmartSelect from '../SmartSelect';
-import ImageUploader from '../ImageUploader';
+import ImageUploader from '../ui/ImageUploader';
 import { formatCurrency } from '../../lib/utils';
 
 const ResellModal = ({ 

@@ -1,5 +1,5 @@
 import React from 'react';
-import SafeImg from './SafeImg';
+import SafeImg from '../components/ui/SafeImg';
 
 const InventoryTable = ({ 
     products, 

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Input } from './Inputs';
-import SmartSelect from './SmartSelect';
-import ImageUploader from './ImageUploader';
+import { Input } from './ui/Inputs';
+import SmartSelect from './ui/SmartSelect';
+import ImageUploader from './ui/ImageUploader';
 
 const PaymentSection = ({ 
     form, 

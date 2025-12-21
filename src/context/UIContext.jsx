@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
-import Icon from '../components/Icon';
-import Button from '../components/Button';
+import Icon from '../components/ui/Icon';
+import Button from '../components/ui/Button';
 
 const UIContext = createContext();
 

@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { formatCurrency } from '../lib/utils';
-import Icon from '../components/Icon';
-import SafeImg from '../components/SafeImg';
+import Icon from '../components/ui/Icon';
+import SafeImg from '../components/ui/SafeImg';
 
 const AlertsView = () => {
     const { products, orders } = useData();

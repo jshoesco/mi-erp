@@ -1,6 +1,6 @@
 import React from 'react';
-import Icon from './Icon';
-import Button from './Button';
+import Icon from '../components/ui/Icon';
+import Button from './ui/Button';
 import InventoryBulkActions from './InventoryBulkActions';
 
 const InventoryHeader = ({ 

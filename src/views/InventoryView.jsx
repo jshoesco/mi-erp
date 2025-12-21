@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { deleteFromCloudinary } from '../lib/utils';
-import { Spinner } from '../components/Icon';
+import { Spinner } from '../components/ui/Icon';
 import ColumnConfigModal from '../components/ColumnConfigModal';
 import ConfirmModal from '../components/ConfirmModal';
 import ImportModal from '../components/ImportModal';

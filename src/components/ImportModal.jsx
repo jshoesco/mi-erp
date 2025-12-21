@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import Modal from './Modal';
-import Button from './Button';
-import Icon from './Icon';
+import Modal from './ui/Modal';
+import Button from './ui/Button';
+import Icon from './ui/Icon';
 import { parseInventoryExcel } from '../lib/inventoryActions';
 import { db, collection, addDoc } from '../lib/firebase';
 

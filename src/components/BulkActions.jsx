@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Button from './Button';
-import Modal from './Modal';
+import Button from './ui/Button';
+import Modal from './ui/Modal';
 import { useUI } from '../context/UIContext';
 
 // Funciones auxiliares para CSV

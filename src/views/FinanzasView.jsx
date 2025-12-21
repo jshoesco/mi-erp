@@ -3,12 +3,12 @@ import useCollection from '../hooks/useCollection';
 import { useUI } from '../context/UIContext';
 import { db, doc, writeBatch, collection, addDoc, updateDoc, deleteDoc, getDoc } from '../lib/firebase';
 import { formatCurrency, uploadToCloudinary } from '../lib/utils';
-import Button from '../components/Button';
-import Icon, { Spinner } from '../components/Icon';
-import Modal from '../components/Modal';
-import { Input, NumberInput } from '../components/Inputs';
-import SmartSelect from '../components/SmartSelect';
-import ImageUploader from '../components/ImageUploader';
+import Button from '../components/ui/Button';
+import Icon, { Spinner } from '../components/ui/Icon';
+import Modal from '../components/ui/Modal';
+import { Input, NumberInput } from '../components/ui/Inputs';
+import SmartSelect from '../components/ui/SmartSelect';
+import ImageUploader from '../components/ui/ImageUploader';
 import BulkActions from '../components/BulkActions';
 
 const FinanzasView = () => {

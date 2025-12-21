@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useUI } from '../context/UIContext'; // Para el saludo o navegación si se requiere
 import { formatCurrency } from '../lib/utils';
-import Icon, { Spinner } from '../components/Icon';
-import SafeImg from '../components/SafeImg';
+import Icon, { Spinner } from '../components/ui/Icon';
+import SafeImg from '../components/ui/SafeImg';
 
 const DashboardView = ({ setView }) => {
     const { orders, quotes, products, loading } = useData();

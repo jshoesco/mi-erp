@@ -5,7 +5,7 @@ import { DataProvider } from './context/DataContext';
 
 // VISTAS
 import LoginScreen from './views/LoginScreen';
-import OrdersView from './views/OrdersView';
+import OrdersView from './components/orders/OrdersView';
 import InventoryView from './views/InventoryView';
 import FinanzasView from './views/FinanzasView';
 import ConfigView from './views/ConfigView';
@@ -16,7 +16,7 @@ import DashboardView from './views/DashboardView';
 // ELIMINÉ LAS IMPORTACIONES QUE DABAN ERROR
 
 // COMPONENTES UI
-import Icon, { Spinner } from './components/Icon';
+import Icon, { Spinner } from './components/ui/Icon';
 
 const App = () => {
     const [user, setUser] = useState(null);

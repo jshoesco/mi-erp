@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../Modal';
-import Button from '../Button';
-import { Input } from '../Inputs';
-import Icon from '../Icon';
-import SafeImg from '../SafeImg';
-import { useUI } from '../../context/UIContext';
-import { db, doc, updateDoc } from '../../lib/firebase';
+import Modal from '../../ui/Modal';
+import Button from '../../ui/Button';
+import { Input } from '../../ui/Inputs';
+import Icon from '../../ui/Icon';
+import SafeImg from '../../ui/SafeImg';
+import { useUI } from '../../../context/UIContext';
+import { db, doc, updateDoc } from '../../../lib/firebase';
 
 const ShippingLabelModal = ({ isOpen, onClose, items, defaultSender }) => {
     const { notify } = useUI();

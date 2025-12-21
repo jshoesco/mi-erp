@@ -3,9 +3,9 @@ import useCollection from '../hooks/useCollection';
 import { useUI } from '../context/UIContext';
 import { db, doc, addDoc, updateDoc, deleteDoc, collection } from '../lib/firebase';
 import { formatCurrency } from '../lib/utils';
-import Button from '../components/Button';
-import Icon from '../components/Icon';
-import { Input, NumberInput } from '../components/Inputs';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import { Input, NumberInput } from '../components/ui/Inputs';
 
 const ConfigView = () => {
     // 1. DATA FETCHING

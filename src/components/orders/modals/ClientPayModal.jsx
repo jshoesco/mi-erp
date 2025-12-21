@@ -1,65 +1,65 @@
 import React from 'react';
-import Modal from '../Modal';
-import Button from '../Button';
-import { Input, NumberInput } from '../Inputs';
-import SmartSelect from '../SmartSelect';
-import ImageUploader from '../ImageUploader';
-import Icon from '../Icon';
-import { formatCurrency } from '../../lib/utils';
+import Modal from '../../../components/ui/Modal';
+import Button from '../../../components/ui/Button';
+import { Input, NumberInput } from '../../../components/ui/Inputs';
+import SmartSelect from '../../../components/ui/SmartSelect';
+import ImageUploader from '../../ui/ImageUploader';
+import Icon from '../../../components/ui/Icon';
+import { formatCurrency } from '../../../lib/utils';
 
-const ClientPayModal = ({ 
-    isOpen, 
-    onClose, 
-    order, 
-    form, 
-    setForm, 
-    financeMethods, 
-    isBank, 
-    onFileSelect, 
-    uploading, 
-    onSave 
+const ClientPayModal = ({
+    isOpen,
+    onClose,
+    order,
+    form,
+    setForm,
+    financeMethods,
+    isBank,
+    onFileSelect,
+    uploading,
+    onSave
 }) => {
-    
+
     const saldoPendiente = (order?.total || 0) - (order?.pago_cliente || 0);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Cobrar al Cliente">
             <div className="space-y-5">
-                
+
                 {/* Resumen del Pedido */}
                 <div className="bg-gray-50 p-5 rounded-xl border border-gray-200 text-sm space-y-2 shadow-inner">
                     <div className="flex justify-between border-b border-gray-200 pb-2">
-                        <span className="text-gray-500">Cliente:</span> 
+                        <span className="text-gray-500">Cliente:</span>
                         <b className="text-gray-900 text-lg">{order?.cliente?.nombre}</b>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-500">Total Pedido:</span> 
+                        <span className="text-gray-500">Total Pedido:</span>
                         <b>{formatCurrency(order?.total)}</b>
                     </div>
                     <div className="flex justify-between text-brand-red pt-2 mt-2 border-t border-gray-200">
-                        <span className="font-bold uppercase text-xs">Saldo Pendiente:</span> 
+                        <span className="font-bold uppercase text-xs">Saldo Pendiente:</span>
                         <b className="text-xl">{formatCurrency(saldoPendiente)}</b>
                     </div>
                 </div>
 
                 {/* Formulario */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <NumberInput 
-                        label="Monto Recibido" 
-                        value={form.monto} 
-                        onChange={e => setForm({ ...form, monto: e.target.value })} 
+                    <NumberInput
+                        label="Monto Recibido"
+                        value={form.monto}
+                        onChange={e => setForm({ ...form, monto: e.target.value })}
                         className="font-bold text-gray-800 text-lg"
                     />
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase block mb-1">Método</label>
-                        <SmartSelect 
-                            label="" 
-                            displayProp="name" 
+                        <SmartSelect
+                            label=""
+                            displayProp="name"
                             valueProp="name"
-                            value={form.metodo} 
-                            onChange={e => setForm({ ...form, metodo: e.target.value })} 
-                            options={financeMethods} 
-                            placeholder="Buscar método..." 
+                            value={form.metodo}
+                            onChange={e => setForm({ ...form, metodo: e.target.value })}
+                            options={financeMethods}
+                            placeholder="Buscar método..."
                         />
                     </div>
                 </div>
@@ -67,17 +67,16 @@ const ClientPayModal = ({
                 {/* Comprobante */}
                 {isBank && (
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3 animate-fade-in">
-                        <Input 
-                            label="Número de Transacción" 
-                            value={form.transaction_id} 
-                            onChange={e => setForm({ ...form, transaction_id: e.target.value })} 
-                            placeholder="Ej: 098213" 
+                        <Input
+                            label="Número de Transacción"
+                            value={form.transaction_id}
+                            onChange={e => setForm({ ...form, transaction_id: e.target.value })}
+                            placeholder="Ej: 098213"
                         />
-                        <ImageUploader 
-                            image={form.imagen} 
-                            onFileSelect={onFileSelect} 
-                            loading={uploading} 
-                            onClear={() => setForm({ ...form, imagen: '' })} 
+                        <ImageUploader
+                            label="Comprobante del Cliente"
+                            currentImg={form.imagen}
+                            onFileSelect={(url) => setForm({ ...form, imagen: url })}
                         />
                     </div>
                 )}

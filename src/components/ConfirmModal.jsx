@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from './Icon';
+import Icon from './ui/Icon';
 
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, type = 'danger' }) => {
     if (!isOpen) return null;

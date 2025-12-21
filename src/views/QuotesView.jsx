@@ -3,12 +3,12 @@ import { useData } from '../context/DataContext';
 import { useUI } from '../context/UIContext';
 import { db, collection, addDoc, deleteDoc, updateDoc, doc } from '../lib/firebase';
 import { formatCurrency } from '../lib/utils';
-import Button from '../components/Button';
-import Icon from '../components/Icon';
-import SafeImg from '../components/SafeImg';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import SafeImg from '../components/ui/SafeImg';
 import QuoteModal from '../components/modals/QuoteModal';
-import Modal from '../components/Modal';
-import SmartSelect from '../components/SmartSelect';
+import Modal from '../components/ui/Modal';
+import SmartSelect from '../components/ui/SmartSelect';
 
 const QuotesView = () => {
     const { quotes, products, shipping, providers, generalConfig, orders } = useData();

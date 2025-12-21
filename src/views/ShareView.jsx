@@ -3,9 +3,9 @@ import useCollection from '../hooks/useCollection';
 import { useUI } from '../context/UIContext';
 import { db, doc, updateDoc } from '../lib/firebase';
 import { formatCurrency, copyToClipboard } from '../lib/utils';
-import Button from '../components/Button';
-import Icon from '../components/Icon';
-import SafeImg from '../components/SafeImg';
+import Button from '../components/ui/Button';
+import Icon from '../components/ui/Icon';
+import SafeImg from '../components/ui/SafeImg';
 
 const ShareView = () => {
     const { data: products } = useCollection('productos');

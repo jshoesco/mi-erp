@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from './Icon';
+import Icon from './ui/Icon';
 
 const formatInputNumber = (val) => {
     if (!val && val !== 0) return '';

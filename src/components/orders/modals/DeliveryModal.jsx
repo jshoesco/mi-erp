@@ -1,11 +1,11 @@
 import React from 'react';
-import Modal from '../Modal';
-import Button from '../Button';
-import Icon from '../Icon';
-import { Input } from '../Inputs';
-import { formatCurrency } from '../../lib/utils';
+import Modal from '../../ui/Modal';
+import Button from '../../ui/Button';
+import Icon from '../../ui/Icon';
+import { Input } from '../../ui/Inputs';
+import { formatCurrency } from '../../../lib/utils';
 // Importamos el nuevo componente
-import PaymentSection from '../PaymentSection';
+import PaymentSection from '../../PaymentSection';
 
 const DeliveryModal = ({ 
     isOpen, 

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import Modal from '../Modal';
-import Button from '../Button';
-import { Input, NumberInput, Select } from '../Inputs';
-import ImageUploader from '../ImageUploader';
-import Icon from '../Icon';
-import SmartSelect from '../SmartSelect';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import { Input, NumberInput, Select } from '../ui/Inputs';
+import ImageUploader from '../ui/ImageUploader';
+import Icon from '../ui/Icon';
+import SmartSelect from '../ui/SmartSelect';
 import { uploadToCloudinary, formatCurrency } from '../../lib/utils';
-import SafeImg from '../SafeImg';
+import SafeImg from '../ui/SafeImg';
 
 const QuoteModal = ({ 
     isOpen, 

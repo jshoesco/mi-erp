@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import Icon from './Icon';
+import Icon from './ui/Icon';
 
 // 1. LISTA MAESTRA LIMPIA (Sin Emojis)
 const MASTER_FIELDS = [

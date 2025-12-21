@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import Modal from './Modal';
-import { Input } from './Inputs';
-import Button from './Button';
-import Icon from './Icon';
-import SmartSelect from './SmartSelect';
-import ImageUploader from './ImageUploader';
+import Modal from './ui/Modal';
+import { Input } from './ui/Inputs';
+import Button from './ui/Button';
+import Icon from './ui/Icon';
+import SmartSelect from './ui/SmartSelect';
+import ImageUploader from './ui/ImageUploader';
 import { uploadToCloudinary } from '../lib/utils';
 import { db, doc, updateDoc, collection, addDoc } from '../lib/firebase';
 

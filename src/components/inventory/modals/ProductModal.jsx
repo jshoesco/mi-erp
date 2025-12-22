@@ -2,8 +2,8 @@ import React, { useMemo } from 'react';
 import { useProductForm } from '../hooks/useProductForm';
 import useCollection from '../../../hooks/useCollection';
 import ModalLayout from '../../ui/ModalLayout';
-import { Input, NumberInput } from '../../ui/Input'; // Quitamos Select de aquí
-import { Select } from '../../ui/Select'; // Importamos el Select NUEVO
+import { Input, NumberInput } from '../../ui/Input';
+import { Select } from '../../ui/Select';
 import Button from '../../ui/Button';
 import Dropzone from '../../ui/Dropzone';
 
@@ -15,8 +15,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
         formData,
         setFormData,
         handlePricing,
-        handleImageUpload,
-        uploading,
         originalSkuRef,
         availableBrands,
         availableModels
@@ -27,18 +25,15 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
         return allProviders.filter(p => p.lineas?.includes(formData.linea));
     }, [formData.linea, allProviders]);
 
-    // ADAPTADOR: El nuevo Select devuelve el NOMBRE, así que buscamos el objeto completo
     const handleProviderChange = (e) => {
         const selectedName = e.target.value;
         const p = filteredProviders.find(x => x.nombre === selectedName);
 
-        // Si no encontramos proveedor (ej. limpió el campo), reseteamos
         if (!p) return setFormData(prev => ({ ...prev, proveedor_uid: '', proveedor_nombre: '', sku: '' }));
 
         const prefix = p.id_custom || p.id;
         const isValid = (s) => s && s.startsWith(prefix);
 
-        // Mantener SKU si ya era válido, si no generar uno nuevo
         const newSku = (originalSkuRef.current && isValid(originalSkuRef.current))
             ? originalSkuRef.current
             : `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -51,7 +46,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
         }));
     };
 
-    // Componente auxiliar para renderizar Labels con el mismo estilo que tus Inputs
     const Label = ({ children }) => (
         <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] ml-1 block mb-2">
             {children}
@@ -66,13 +60,12 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
             actions={<Button onClick={() => onSave(formData)}>Guardar</Button>}
         >
             <div className="space-y-5">
+                {/* El Dropzone ahora recibe la URL directamente y actualiza el estado */}
                 <Dropzone
                     value={formData.imagen}
-                    onChange={handleImageUpload}
-                    loading={uploading}
+                    onChange={(url) => setFormData(prev => ({ ...prev, imagen: url }))}
                 />
 
-                {/* Selector de Tipo (Físico vs Sobrepedido) */}
                 <div className="flex bg-gray-50/50 p-1 rounded-2xl border border-gray-100">
                     <button
                         onClick={() => setFormData({ ...formData, tipo: 'stock' })}
@@ -89,7 +82,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
                 </div>
 
                 <div className="grid grid-cols-2 gap-5">
-                    {/* SELECT DE LÍNEA */}
                     <div>
                         <Label>Línea</Label>
                         <Select
@@ -99,12 +91,11 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
                         />
                     </div>
 
-                    {/* SELECT DE PROVEEDOR */}
                     <div className="relative">
                         <Label>Proveedor</Label>
                         <Select
                             options={filteredProviders.map(p => p.nombre)}
-                            value={formData.proveedor_nombre} // Usamos el nombre para que coincida con las opciones
+                            value={formData.proveedor_nombre}
                             onChange={handleProviderChange}
                         />
                         {formData.sku && (
@@ -122,7 +113,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
                 />
 
                 <div className="grid grid-cols-2 gap-5">
-                    {/* SELECT DE MARCA (AUTOCOMPLETE) */}
                     <div>
                         <Label>Marca</Label>
                         <Select
@@ -132,7 +122,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
                         />
                     </div>
 
-                    {/* SELECT DE MODELO (AUTOCOMPLETE) */}
                     <div>
                         <Label>Modelo</Label>
                         <Select
@@ -143,7 +132,6 @@ const ProductModal = ({ isOpen, onClose, onSave, initialData = null, allProducts
                     </div>
                 </div>
 
-                {/* Sección de Precios */}
                 <div className="grid grid-cols-3 gap-4 bg-gray-50/50 p-5 rounded-2xl border border-gray-100">
                     <NumberInput label="Costo" value={formData.costo} onChange={e => handlePricing('costo', e.target.value)} />
                     <NumberInput label="Ganancia" value={formData.ganancia} onChange={e => handlePricing('ganancia', e.target.value)} />

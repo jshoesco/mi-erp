@@ -2,47 +2,53 @@ import React from 'react';
 import { useInventory } from './hooks/useInventory';
 import InventoryTable from './components/InventoryTable';
 import ProductModal from './modals/ProductModal';
-import ColumnConfigModal from './modals/ColumnConfigModal';
+import InventorySettingsModal from './modals/InventorySettingsModal';
 import Button from '../ui/Button';
-import ActionBar from '../ui/ActionBar';
-import { IconSettings } from '@tabler/icons-react';
+import Icon from '../ui/Icon';
 
 const InventoryView = () => {
-    const { 
-        products, loading, modals, ui, handleSave, selectedIds, toggleSelect, toggleAll, 
-        clearSelection, showArchived, setShowArchived, inventoryActions,
-        columns, setColumns, availableKeys, reorderColumns 
+    const {
+        products, loading, modals, ui, handleSave, showArchived, setShowArchived,
+        columns, setColumns, availableKeys, providers, lines, notify
     } = useInventory();
 
-    if (loading) return <div className="p-10 font-black text-gray-400 text-center uppercase">Cargando...</div>;
+    if (loading) return (
+        <div className="h-screen w-full flex flex-col items-center justify-center bg-white">
+            <div className="w-12 h-12 border-4 border-gray-100 border-t-brand-dark rounded-full animate-spin mb-4" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Sincronizando Stock</span>
+        </div>
+    );
 
     return (
-        <div className="relative flex flex-col h-full bg-white p-8 space-y-6">
-            <header className="flex justify-between items-center">
-                <div className="flex flex-col">
-                    <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none">
+        <div className="relative flex flex-col h-full bg-white p-8 space-y-8 animate-fade-in">
+            <header className="flex justify-between items-end">
+                <div className="space-y-3">
+                    <h1 className="text-3xl font-black uppercase italic text-gray-900 tracking-tighter leading-none">
                         {showArchived ? 'Archivo' : 'Inventario'}
                     </h1>
-                    <button onClick={() => { setShowArchived(!showArchived); clearSelection(); }} className="text-[9px] font-black text-brand-red uppercase tracking-[0.2em] mt-2 text-left hover:underline">
-                        {showArchived ? '← Volver al Activo' : 'Ver Archivados →'}
+                    <button onClick={() => setShowArchived(!showArchived)} className="flex items-center gap-2 text-[9px] font-black text-brand-red uppercase tracking-widest ml-1 hover:underline transition-all">
+                        <Icon name={showArchived ? "ArrowLeft" : "Archive"} size={12} />
+                        {showArchived ? 'Volver al Activo' : 'Ver Archivados'}
                     </button>
                 </div>
-                
-                <div className="flex items-center gap-3">
-                    <button onClick={ui.openColumns} className="p-2.5 text-gray-400 hover:text-brand-red transition-colors bg-gray-50 rounded-xl border border-gray-100">
-                        <IconSettings size={20} />
+
+                <div className="flex items-center gap-4">
+                    <button onClick={ui.openColumns} className="p-4 text-gray-400 hover:text-brand-dark bg-gray-50 rounded-2xl border border-gray-100 transition-all">
+                        <Icon name="Settings" size={20} />
                     </button>
-                    <Button onClick={() => ui.openProduct()} icon="Plus">Nuevo Producto</Button>
+                    <Button onClick={() => ui.openProduct()} className="bg-brand-dark text-white px-8 h-14 rounded-2xl font-black text-[11px] tracking-widest shadow-xl">
+                        + REGISTRAR PRODUCTO
+                    </Button>
                 </div>
             </header>
 
-            <InventoryTable products={products} selectedIds={selectedIds} toggleSelect={toggleSelect} toggleAll={toggleAll} onEdit={ui.openProduct} columns={columns} />
+            <div className="flex-1 min-h-0">
+                <InventoryTable products={products} columns={columns} onEdit={ui.openProduct} />
+            </div>
 
-            <ProductModal isOpen={modals.product.open} onClose={ui.closeProduct} initialData={modals.product.data} onSave={handleSave} allProducts={products} />
+            <ProductModal isOpen={modals.product.open} onClose={ui.closeProduct} initialData={modals.product.data} onSave={handleSave} providers={providers} lines={lines} />
 
-            <ColumnConfigModal isOpen={modals.columns.open} onClose={ui.closeColumns} columns={columns} setColumns={setColumns} availableKeys={availableKeys} reorderColumns={reorderColumns} />
-
-            <ActionBar count={selectedIds.length} onClear={clearSelection} actions={inventoryActions} />
+            <InventorySettingsModal isOpen={modals.columns.open} onClose={ui.closeColumns} columns={columns} setColumns={setColumns} availableKeys={availableKeys} providers={providers} lines={lines} notify={notify} />
         </div>
     );
 };

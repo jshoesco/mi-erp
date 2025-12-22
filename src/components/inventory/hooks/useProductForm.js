@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useUpload } from '../../../hooks/useUpload';
 
 export const useProductForm = (initialData, isOpen, allProducts = []) => {
     const [formData, setFormData] = useState({
@@ -9,7 +8,6 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
     });
 
     const originalSkuRef = useRef(null);
-    const { uploadImage, loading: uploading } = useUpload();
 
     const availableBrands = useMemo(() => {
         const brands = allProducts.map(p => p.marca?.toUpperCase()).filter(Boolean);
@@ -31,10 +29,10 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
                 setFormData({ ...initialData, id: initialData.id });
                 originalSkuRef.current = initialData.sku;
             } else {
-                setFormData({ 
-                    tipo: 'stock', linea: '', proveedor_uid: '', proveedor_nombre: '', 
-                    nombre: '', marca: '', modelo: '', sku: '', costo: '', 
-                    ganancia: '', precio: '', stock_actual: 0, ubicacion: '', imagen: '' 
+                setFormData({
+                    tipo: 'stock', linea: '', proveedor_uid: '', proveedor_nombre: '',
+                    nombre: '', marca: '', modelo: '', sku: '', costo: '',
+                    ganancia: '', precio: '', stock_actual: 0, ubicacion: '', imagen: ''
                 });
                 originalSkuRef.current = null;
             }
@@ -54,14 +52,8 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
         setFormData(prev => ({ ...prev, ...updates }));
     };
 
-    const handleImageUpload = async (file) => {
-        if (!file) return setFormData(prev => ({ ...prev, imagen: '' }));
-        const url = await uploadImage(file, formData.sku);
-        if (url) setFormData(prev => ({ ...prev, imagen: url }));
-    };
-
-    return { 
-        formData, setFormData, handlePricing, handleImageUpload, 
-        uploading, originalSkuRef, availableBrands, availableModels 
+    return {
+        formData, setFormData, handlePricing,
+        originalSkuRef, availableBrands, availableModels
     };
 };

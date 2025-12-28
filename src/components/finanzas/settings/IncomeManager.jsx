@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/display/Icon';
 
 const IncomeManager = ({ config, sync }) => {
     const [newValue, setNewValue] = useState('');

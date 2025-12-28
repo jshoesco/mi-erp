@@ -1,5 +1,5 @@
 import React from 'react';
-import Icon from '../../ui/Icon';
+import Icon from '../../ui/display/Icon';
 import Checkbox from '../../ui/Checkbox';
 
 const BankManager = ({ config, sync }) => {

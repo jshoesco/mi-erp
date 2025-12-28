@@ -3,7 +3,11 @@ import LogisticsConfig from './sections/LogisticsConfig';
 import SupplyConfig from './sections/SupplyConfig';
 import FinanceConfig from './sections/FinanceConfig';
 import SystemConfig from './sections/SystemConfig';
-import Icon from '../ui/Icon';
+
+// IMPORTACIÓN DE COMPONENTES GENÉRICOS (TOKENS)
+import { TOKENS } from '../../theme/constants';
+import { H1, TextLabel } from '../ui/display/Typography';
+import Icon from '../ui/display/Icon';
 
 const ConfigView = () => {
     const [tab, setTab] = useState('logistics');
@@ -16,42 +20,36 @@ const ConfigView = () => {
     ];
 
     return (
-        // Contenedor principal con ancho FIJO máximo para que nada se mueva
-        <div className="p-6 max-w-6xl mx-auto pb-24 w-full">
-            <h1 className="text-2xl font-black text-gray-900 mb-8 tracking-tight uppercase">Configuración Pro</h1>
-
-            {/* ESTA ES LA BARRA INDEPENDIENTE. 
-              Tiene un ancho del 100% fijo y no depende de lo que pase abajo.
-            */}
-            <div className="w-full bg-white border border-gray-100 rounded-t-3xl shadow-sm overflow-hidden">
-                <div className="grid grid-cols-4 w-full">
-                    {tabs.map(t => (
-                        <button
-                            key={t.id}
-                            onClick={() => setTab(t.id)}
-                            className={`
-                                py-5 flex items-center justify-center gap-3 transition-all duration-200
-                                text-[10px] font-black uppercase tracking-widest border-b-4
-                                ${tab === t.id
-                                    ? 'border-brand-red text-brand-dark bg-gray-50/50'
-                                    : 'border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50/20'}
-                            `}
-                        >
-                            <Icon name={t.icon} size={16} />
-                            <span className="hidden md:inline">{t.label}</span>
-                        </button>
-                    ))}
-                </div>
+        <div className={`flex flex-col h-full ${TOKENS.spacing.view} ${TOKENS.animation.fade} space-y-10`}>
+            {/* HEADER ESTRATÉGICO */}
+            <div className="space-y-1">
+                <H1>Panel de Configuración</H1>
+                <TextLabel>Control maestro de infraestructura y reglas de negocio</TextLabel>
             </div>
 
-            {/* ESTE ES EL CONTENEDOR DE CONTENIDO.
-              Es independiente de la barra y tiene una altura mínima bloqueada.
-            */}
-            <div className="w-full bg-white border border-t-0 border-gray-100 rounded-b-3xl shadow-sm min-h-[650px] p-10">
-                <div className="animate-fade-in w-full">
-                    {/* IMPORTANTE: Aquí inyectamos el componente. 
-                      Cada sección DEBE ocupar el 100% de este espacio.
-                    */}
+            {/* NAV DE PESTAÑAS (DNA CAPSULE) */}
+            <nav className={`flex items-center gap-2 bg-brand-light/50 p-1.5 ${TOKENS.radius.inner} border border-brand-light w-fit backdrop-blur-md`}>
+                {tabs.map(t => (
+                    <button
+                        key={t.id}
+                        onClick={() => setTab(t.id)}
+                        className={`
+                            px-8 py-3 flex items-center gap-3 ${TOKENS.radius.button} transition-all duration-300
+                            ${TOKENS.text.tiny}
+                            ${tab === t.id
+                                ? 'bg-brand-dark text-white shadow-lg scale-[1.05]'
+                                : 'text-brand-gray/40 hover:text-brand-dark hover:bg-brand-surface'}
+                        `}
+                    >
+                        <Icon name={t.icon} size={16} />
+                        <span className="hidden md:inline">{t.label}</span>
+                    </button>
+                ))}
+            </nav>
+
+            {/* CUERPO DE CONFIGURACIÓN */}
+            <div className={`flex-1 bg-brand-surface ${TOKENS.radius.container} p-12 shadow-card border border-brand-light overflow-y-auto custom-scrollbar`}>
+                <div className="w-full max-w-5xl mx-auto">
                     {tab === 'logistics' && <LogisticsConfig />}
                     {tab === 'supply' && <SupplyConfig />}
                     {tab === 'finance' && <FinanceConfig />}

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Input } from './ui/Input'; // Importación correcta (singular)
-import { Select } from './ui/Select'; // El nuevo Select estándar
+import { Input } from './ui/forms/Input'; // Importación correcta (singular)
+import { Select } from './ui/forms/Select'; // El nuevo Select estándar
 import Dropzone from './ui/Dropzone'; // El nuevo estándar de imágenes
 
 const PaymentSection = ({

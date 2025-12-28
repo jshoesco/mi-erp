@@ -1,61 +1,58 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { db, auth, doc, getDoc, setDoc, onAuthStateChanged } from '../lib/firebase';
+import { useState, useEffect, useMemo } from 'react';
+import { db, doc, setDoc } from '../lib/firebase';
+import { useUI } from '../context/UIContext';
 
-export const useTableConfig = (initialConfig, data) => {
-    const [columns, setColumns] = useState(initialConfig);
-    const [availableKeys, setAvailableKeys] = useState([]);
-    const [loading, setLoading] = useState(true);
-    
-    // Usamos un Ref para evitar disparar efectos innecesarios por cambios en initialConfig
-    const initialConfigRef = useRef(initialConfig);
+export const useTableConfig = ({ masterColumns, data, remoteColumns, dbParams }) => {
+    const { notify } = useUI();
+    const [columns, setColumns] = useState(masterColumns);
 
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    const docRef = doc(db, "userPreferences", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        const cloudData = docSnap.data().inventoryColumns;
-                        // SOLO actualizamos si la data es distinta para romper el bucle
-                        if (JSON.stringify(cloudData) !== JSON.stringify(columns)) {
-                            setColumns(cloudData);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error Firebase:", error);
-                }
-            }
-            setLoading(false);
+    // LÓGICA CENTRALIZADA: Generación dinámica de llaves
+    const availableKeys = useMemo(() => {
+        if (!data || data.length === 0) return masterColumns;
+
+        const dataKeys = Object.keys(data[0]);
+        const allKeys = new Set([...masterColumns.map(c => c.key), ...dataKeys]);
+
+        return Array.from(allKeys).map(key => {
+            const master = masterColumns.find(c => c.key === key);
+            return {
+                key,
+                label: master ? master.label : key.toUpperCase().replace(/_/g, ' ')
+            };
         });
+    }, [data, masterColumns]);
 
-        return () => unsubscribe();
-    }, []); // Array vacío: Solo se ejecuta al montar el componente
-
+    // Sincronización con Firebase
     useEffect(() => {
-        if (data && data.length > 0) {
-            const keys = Object.keys(data[0]).filter(k => k !== 'id');
-            // Comparación simple para evitar re-renders infinitos de llaves disponibles
-            if (JSON.stringify(keys) !== JSON.stringify(availableKeys)) {
-                setAvailableKeys(keys);
-            }
+        if (remoteColumns && remoteColumns.length > 0) {
+            setColumns(remoteColumns);
+        } else {
+            setColumns(masterColumns);
         }
-    }, [data]);
+    }, [remoteColumns]);
 
-    // useCallback es VITAL aquí para que el componente que use este hook no se vuelva loco
-    const saveConfig = useCallback(async (newConfig) => {
-        const user = auth.currentUser;
-        if (!user) return;
-
+    // Función de guardado genérica
+    const saveConfig = async (newColumns) => {
         try {
-            const docRef = doc(db, "userPreferences", user.uid);
-            await setDoc(docRef, { inventoryColumns: newConfig }, { merge: true });
-            setColumns(newConfig);
-        } catch (error) {
-            console.error("Error al guardar:", error);
-        }
-    }, []);
+            if (!dbParams?.collection || !dbParams?.id) return false;
 
-    return { columns, setColumns: saveConfig, availableKeys, loading };
+            const docRef = doc(db, dbParams.collection, dbParams.id);
+            await setDoc(docRef, { columns: newColumns }, { merge: true });
+
+            setColumns(newColumns);
+            notify("Configuración guardada");
+            return true;
+        } catch (e) {
+            console.error("Error al guardar:", e);
+            notify("Error al guardar configuración", "error");
+            return false;
+        }
+    };
+
+    return {
+        columns,
+        setColumns,
+        availableKeys,
+        saveConfig
+    };
 };

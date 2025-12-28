@@ -1,158 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import Modal from '../../ui/Modal';
-import Button from '../../ui/Button';
-import { Input, NumberInput } from '../../ui/Input';
-import { Select } from '../../ui/Select'; // <--- Select Nuevo
-import Checkbox from '../../ui/Checkbox'; // <--- Checkbox Nuevo
-import Dropzone from '../../ui/Dropzone'; // <--- Dropzone en vez de ImageUploader viejo
-import { useUI } from '../../../context/UIContext';
-import { useData } from '../../../context/DataContext';
+import React, { useState } from 'react';
+import ModalLayout from '../../ui/layout/ModalLayout';
+import { Button } from '../../ui/display/Button';
+import { Input } from '../../ui/forms/Input';
+import Select from '../../ui/forms/Select';
 import { db } from '../../../lib/firebase';
-import { doc, writeBatch, collection } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useUI } from '../../../context/UIContext';
 
-const GuideModal = ({ isOpen, onClose, order }) => {
+const GuideModal = ({ isOpen, onClose, data }) => {
     const { notify } = useUI();
-    const { financeConfig } = useData();
     const [loading, setLoading] = useState(false);
-
-    const [form, setForm] = useState({
-        numero: '',
-        fecha: new Date().toISOString().slice(0, 10),
-        costo_envio: '',
-        anticipado: false,
-        metodo: '',
-        transaction_id: '',
-        imagen: ''
+    const [guide, setGuide] = useState({
+        numero: data?.guia?.numero || '',
+        transportadora: data?.guia?.transportadora || ''
     });
 
-    const financeMethods = financeConfig?.methods || [];
-    const isBank = financeMethods.find(m => m.name === form.metodo)?.isBank;
-
-    useEffect(() => {
-        if (isOpen) {
-            setForm({
-                numero: '',
-                fecha: new Date().toISOString().slice(0, 10),
-                costo_envio: '',
-                anticipado: false,
-                metodo: '',
-                transaction_id: '',
-                imagen: ''
-            });
-        }
-    }, [isOpen]);
-
-    const handleSave = async (e) => {
-        if (e) e.preventDefault();
-
-        if (!form.numero) return notify("Número de guía obligatorio", "error");
-        if (!order || !order.id) return notify("Error: Pedido no identificado", "error");
-        if (form.anticipado && (!form.costo_envio || !form.metodo)) {
-            return notify("Faltan datos del pago anticipado", "error");
+    const handleSave = async () => {
+        if (!guide.numero || !guide.transportadora) {
+            return notify("Completa todos los campos de envío", "error");
         }
 
         setLoading(true);
         try {
-            const batch = writeBatch(db);
-            const orderRef = doc(db, 'pedidos', order.id);
-
-            const updatedItems = order.items.map(item => ({
-                ...item,
-                guia: {
-                    numero: form.numero,
-                    fecha: form.fecha,
-                    anticipado: form.anticipado,
-                    costo: Number(form.costo_envio) || 0
-                }
-            }));
-
-            if (form.anticipado && Number(form.costo_envio) > 0) {
-                const finRef = doc(collection(db, 'finanzas'));
-                batch.set(finRef, {
-                    tipo: 'Gasto',
-                    categoria: 'Envío',
-                    monto: Number(form.costo_envio),
-                    metodo: form.metodo,
-                    imagen: form.imagen || '',
-                    fecha: new Date().toISOString(),
-                    concepto: `Pago Flete Guía #${form.numero} - Pedido #${order.id_visual}`
-                });
-            }
-
-            batch.update(orderRef, { items: updatedItems, estado: 'Enviado' });
-
-            await batch.commit();
-            notify("Pedido despachado correctamente", "success");
+            const ref = doc(db, 'pedidos', data.id);
+            await updateDoc(ref, {
+                guia: guide,
+                estado: 'Enviado' // Al poner guía, el pedido escala automáticamente
+            });
+            notify("Guía asignada correctamente", "success");
             onClose();
         } catch (error) {
-            console.error("Error en GuideModal:", error);
-            notify("Error crítico: " + error.message, "error");
+            notify("Error al guardar guía", "error");
         } finally {
             setLoading(false);
         }
     };
 
-    const Label = ({ children }) => (
-        <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] ml-1 block mb-2">{children}</label>
-    );
-
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Despachar #${order?.id_visual}`}>
-            <form onSubmit={handleSave} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <Input label="Nro Guía" value={form.numero} onChange={e => setForm({ ...form, numero: e.target.value })} autoFocus />
-                    <Input label="Fecha" type="date" value={form.fecha} onChange={e => setForm({ ...form, fecha: e.target.value })} />
-                </div>
-
-                <div className="p-5 bg-gray-50/50 rounded-2xl border border-gray-100 space-y-4">
-                    <NumberInput
-                        label="Costo del Envío"
-                        value={form.costo_envio}
-                        onChange={e => setForm({ ...form, costo_envio: e.target.value })}
-                    />
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100">
-                        <Checkbox
-                            checked={form.anticipado}
-                            onChange={() => setForm({ ...form, anticipado: !form.anticipado })}
-                        />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wide cursor-pointer" onClick={() => setForm({ ...form, anticipado: !form.anticipado })}>
-                            ¿Flete Pagado Anticipado?
-                        </span>
-                    </div>
-                </div>
-
-                {form.anticipado && (
-                    <div className="space-y-4 p-5 bg-indigo-50/20 border border-indigo-100 rounded-2xl animate-fade-in-down">
-                        <div>
-                            <Label>Método de Pago</Label>
-                            <Select
-                                options={financeMethods.map(m => m.name)}
-                                value={form.metodo}
-                                onChange={e => setForm({ ...form, metodo: e.target.value })}
-                                placeholder="Seleccionar..."
-                            />
-                        </div>
-                        {isBank && (
-                            <Dropzone
-                                value={form.imagen}
-                                onChange={(files) => {
-                                    // Aquí iría tu lógica de subida, por ahora simulamos
-                                    if (files[0]) notify("Subida pendiente de implementación real");
-                                }}
-                                loading={false}
-                            />
-                        )}
-                    </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                    <Button type="button" variant="secondary" onClick={onClose} className="text-[10px]">Cancelar</Button>
-                    <Button type="submit" isLoading={loading} className="bg-brand-dark px-8 text-[10px] font-black tracking-widest uppercase">
+        <ModalLayout isOpen={isOpen} onClose={onClose} title="Asignar Despacho" size="sm">
+            <div className="p-6 space-y-4">
+                <Select
+                    label="Transportadora"
+                    value={guide.transportadora}
+                    onChange={(val) => setGuide(prev => ({ ...prev, transportadora: val }))}
+                    options={[
+                        { id: 'interrapidisimo', label: 'Interrapidisimo' },
+                        { id: 'envia', label: 'Envia' },
+                        { id: 'servientrega', label: 'Servientrega' }
+                    ]}
+                />
+                <Input
+                    label="Número de Guía"
+                    value={guide.numero}
+                    onChange={(e) => setGuide(prev => ({ ...prev, numero: e.target.value }))}
+                    placeholder="Ej: 123456789"
+                />
+                <div className="pt-4">
+                    <Button
+                        variant="primary"
+                        className="w-full"
+                        onClick={handleSave}
+                        isLoading={loading}
+                    >
                         Confirmar Envío
                     </Button>
                 </div>
-            </form>
-        </Modal>
+            </div>
+        </ModalLayout>
     );
 };
 

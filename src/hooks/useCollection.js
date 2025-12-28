@@ -9,28 +9,25 @@ export const useCollection = (collectionName) => {
     useEffect(() => {
         if (!collectionName) return;
 
-        try {
-            const q = query(collection(db, collectionName));
-            
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const docs = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setData(docs);
-                setLoading(false);
-            }, (err) => {
-                console.error("Error fetching collection:", err);
-                setError(err);
-                setLoading(false);
-            });
+        // SUSCRIPCIÓN ÚNICA Y LIMPIA
+        const q = query(collection(db, collectionName));
 
-            return () => unsubscribe();
-        } catch (err) {
-            console.error("Error setting up listener:", err);
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const docs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            setData(docs);
+            setLoading(false);
+        }, (err) => {
+            console.error("Error fetching collection:", err);
             setError(err);
             setLoading(false);
-        }
+        });
+
+        // LIMPIEZA AL DESMONTAR
+        return () => unsubscribe();
     }, [collectionName]);
 
     return { data, loading, error };

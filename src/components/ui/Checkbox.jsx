@@ -1,16 +1,30 @@
 import React from 'react';
-import { IconCheck } from '@tabler/icons-react';
+import Icon from './display/Icon';
 
-const Checkbox = ({ checked, onChange, indeterminate = false }) => {
+const Checkbox = ({ checked, onChange, label, className = "" }) => {
     return (
-        <div 
-            onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
-            className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer
-                ${checked || indeterminate ? 'bg-brand-red border-brand-red' : 'bg-white border-gray-300 hover:border-brand-red'}`}
-        >
-            {checked && !indeterminate && <IconCheck size={14} className="text-white stroke-[4]" />}
-            {indeterminate && <div className="w-2 h-0.5 bg-white rounded-full" />}
-        </div>
+        <label className={`flex items-center gap-3 cursor-pointer group select-none ${className}`}>
+            <div className="relative">
+                <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={checked}
+                    onChange={onChange}
+                />
+                <div className={`w-6 h-6 rounded-xl border-2 transition-all flex items-center justify-center
+                    ${checked
+                        ? 'bg-brand-red border-brand-red shadow-lg shadow-red-200 scale-110'
+                        : 'bg-white border-slate-200 group-hover:border-slate-400'}`}>
+                    {checked && <Icon name="Check" size={14} className="text-white stroke-[4]" />}
+                </div>
+            </div>
+            {label && (
+                <span className={`text-[10px] font-black uppercase tracking-widest transition-colors
+                    ${checked ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                    {label}
+                </span>
+            )}
+        </label>
     );
 };
 

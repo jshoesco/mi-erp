@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import Modal from '../../ui/Modal';
 import { db, doc, updateDoc } from '../../../lib/firebase';
-// Importamos los módulos
 import IncomeManager from '../settings/IncomeManager';
 import ExpenseManager from '../settings/ExpenseManager';
 import BankManager from '../settings/BankManager';
+import FinanceColumnsManager from '../settings/FinanceColumnsManager';
 
-const FinanceSettingsModal = ({ isOpen, onClose, config, notify }) => {
+// IMPORTACIÓN DEL SISTEMA GENÉRICO
+import ModalLayout from '../../ui/layout/ModalLayout';
+
+const FinanceSettingsModal = ({
+    isOpen, onClose, config, notify,
+    columns, availableKeys,
+    saveColumnsConfig
+}) => {
     const [tab, setTab] = useState('ingresos');
 
-    // Función centralizada de guardado
+    const tabs = [
+        { id: 'ingresos', label: 'Ingresos' },
+        { id: 'gastos', label: 'Gastos' },
+        { id: 'bancos', label: 'Bancos' },
+        { id: 'columnas', label: 'Columnas' }
+    ];
+
     const sync = async (newData) => {
         try {
             if (!config?.id) return notify("Error de configuración", "error");
@@ -18,38 +30,42 @@ const FinanceSettingsModal = ({ isOpen, onClose, config, notify }) => {
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="ESTRUCTURA FINANCIERA">
-            <div className="w-full h-[550px] flex flex-col space-y-6">
-
-                {/* NAVEGACIÓN */}
-                <div className="flex bg-gray-100 p-1 rounded-2xl shrink-0">
-                    {['ingresos', 'gastos', 'bancos'].map(t => (
+        <ModalLayout
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Estructura Financiera"
+            size="max-w-3xl"
+        >
+            <div className="flex flex-col space-y-8">
+                <nav className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-[1.5rem] border border-gray-100 w-full">
+                    {tabs.map(t => (
                         <button
-                            key={t}
-                            onClick={() => setTab(t)}
-                            className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${tab === t ? 'bg-white shadow text-brand-dark' : 'text-gray-400'}`}
+                            key={t.id}
+                            onClick={() => setTab(t.id)}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${tab === t.id
+                                    ? 'bg-white shadow-sm text-slate-900'
+                                    : 'text-gray-400 hover:text-slate-600'
+                                }`}
                         >
-                            {t}
+                            {t.label}
                         </button>
                     ))}
-                </div>
+                </nav>
 
-                {/* CONTENIDO MODULAR */}
-                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    {tab === 'ingresos' && (
-                        <IncomeManager config={config} sync={sync} />
-                    )}
-
-                    {tab === 'gastos' && (
-                        <ExpenseManager config={config} sync={sync} />
-                    )}
-
-                    {tab === 'bancos' && (
-                        <BankManager config={config} sync={sync} />
+                <div className="min-h-[400px] max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+                    {tab === 'ingresos' && <IncomeManager config={config} sync={sync} />}
+                    {tab === 'gastos' && <ExpenseManager config={config} sync={sync} />}
+                    {tab === 'bancos' && <BankManager config={config} sync={sync} />}
+                    {tab === 'columnas' && (
+                        <FinanceColumnsManager
+                            columns={columns}
+                            availableKeys={availableKeys}
+                            onSave={saveColumnsConfig}
+                        />
                     )}
                 </div>
             </div>
-        </Modal>
+        </ModalLayout>
     );
 };
 

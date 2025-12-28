@@ -1,34 +1,35 @@
 import React, { createContext, useContext, useState } from 'react';
-import Icon from '../components/ui/Icon';
-import Button from '../components/ui/Button';
+import Icon from '../components/ui/display/Icon';
+import { Button } from '../components/ui/display/Button';
+import { TOKENS } from '../theme/constants';
 
 const UIContext = createContext();
 
 export const UIProvider = ({ children }) => {
+    // 1. ESTADOS (Notificaciones, Confirmación y MODALES)
     const [toasts, setToasts] = useState([]);
-    const [confirmModal, setConfirmModal] = useState({ 
-        isOpen: false, 
-        title: '', 
-        message: '', 
-        onConfirm: null 
+    const [headerActions, setHeaderActions] = useState(null);
+    const [modal, setModal] = useState({ type: null, data: null }); // AJUSTE: Motor de modales
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false, title: '', message: '', onConfirm: null
     });
 
-    // Función para mostrar notificaciones
+    // 2. FUNCIONES DE MODALES (Lo que te faltaba para que funcione el botón)
+    const openModal = (type, data = null) => setModal({ type, data });
+    const closeModal = () => setModal({ type: null, data: null });
+
+    // 3. FUNCIONES DE NOTIFICACIÓN Y CONFIRMACIÓN
     const notify = (message, type = 'success') => {
-        // CORRECCIÓN: Agregamos Math.random() para asegurar que la llave sea única
-        // aunque ocurran dos notificaciones en el mismo milisegundo.
-        const id = Date.now() + Math.random(); 
-        
+        const id = Date.now() + Math.random();
         setToasts(prev => [...prev, { id, message, type }]);
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
     };
 
-    // Función para pedir confirmación (Sí/No)
     const confirmAction = ({ title, message, onConfirm }) => {
         setConfirmModal({
             isOpen: true,
-            title: title || 'Confirmar',
-            message: message || '¿Seguro?',
+            title: title || 'Confirmar Acción',
+            message: message || '¿Estás seguro?',
             onConfirm: async () => {
                 await onConfirm();
                 setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -36,35 +37,48 @@ export const UIProvider = ({ children }) => {
         });
     };
 
+    // 4. VALOR DEL CONTEXTO (Todo lo que exportamos)
+    const value = {
+        notify,
+        confirmAction,
+        headerActions,
+        setHeaderActions,
+        modal,      // Necesario para OrdersModals
+        openModal,  // Necesario para el botón Nuevo Pedido
+        closeModal  // Necesario para cerrar formularios
+    };
+
     return (
-        <UIContext.Provider value={{ notify, confirmAction }}>
+        <UIContext.Provider value={value}>
             {children}
-            
-            {/* Renderizado de Toasts (Notificaciones) */}
-            <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-xs px-4 md:px-0 md:w-auto">
+
+            {/* RENDER DE NOTIFICACIONES */}
+            <div className="fixed top-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none w-full max-w-xs">
                 {toasts.map(t => (
-                    <div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 text-white w-full animate-bounce-in ${t.type === 'error' ? 'bg-rose-600' : t.type === 'info' ? 'bg-blue-600' : 'bg-emerald-600'}`}>
-                        <Icon name={t.type === 'error' ? 'AlertCircle' : t.type === 'info' ? 'Info' : 'CheckCircle'} size={18} />
-                        {t.message}
+                    <div key={t.id} className={`pointer-events-auto px-6 py-4 ${TOKENS.radius.inner} shadow-float flex items-center gap-4 text-white animate-fade-in border border-white/10 backdrop-blur-md ${t.type === 'error' ? 'bg-brand-red' : 'bg-brand-dark'}`}>
+                        <Icon name={t.type === 'error' ? 'alert-circle' : 'check-circle'} size={20} />
+                        <span className={TOKENS.text.tiny}>{t.message}</span>
                     </div>
                 ))}
             </div>
 
-            {/* Renderizado del Modal de Confirmación */}
+            {/* RENDER DE CONFIRMACIÓN */}
             {confirmModal.isOpen && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4">
-                        <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
-                            <Icon name="AlertTriangle" size={24} />
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-brand-dark/60 backdrop-blur-md">
+                    <div className={`bg-brand-surface ${TOKENS.radius.container} shadow-card w-full max-w-sm p-10 text-center space-y-6 border border-brand-light`}>
+                        <div className={`w-16 h-16 bg-brand-red/10 text-brand-red ${TOKENS.radius.inner} flex items-center justify-center mx-auto`}>
+                            <Icon name="alert-circle" size={32} />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900">{confirmModal.title}</h3>
-                        <p className="text-sm text-slate-500">{confirmModal.message}</p>
-                        <div className="flex gap-3 pt-2">
-                            <Button variant="secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="flex-1 h-12">
-                                Cancelar
+                        <div className="space-y-2">
+                            <h3 className={TOKENS.text.h2}>{confirmModal.title}</h3>
+                            <p className={`${TOKENS.text.tiny} text-brand-gray/60 tracking-normal normal-case`}>{confirmModal.message}</p>
+                        </div>
+                        <div className="flex gap-4 pt-4">
+                            <Button variant="secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} className="flex-1 h-14">
+                                CANCELAR
                             </Button>
-                            <Button variant="danger" onClick={confirmModal.onConfirm} className="flex-1 h-12">
-                                Sí, Confirmar
+                            <Button variant="primary" onClick={confirmModal.onConfirm} className="flex-1 h-14">
+                                CONFIRMAR
                             </Button>
                         </div>
                     </div>

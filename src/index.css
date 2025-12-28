@@ -1,33 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Forzamos la Inter como la única verdad en el sistema */
+    --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
   body {
-    @apply bg-brand-light text-brand-dark font-sans antialiased;
+    @apply bg-[#F8F9FA] text-slate-900 antialiased;
+    font-family: var(--font-inter);
+    /* Eliminamos cualquier rastro de cursivas globalmente */
+    font-style: normal !important;
+  }
+
+  /* Aseguramos que los encabezados y botones sigan la regla */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-inter);
+    font-style: normal;
   }
 }
 
-/* Animaciones personalizadas */
-.fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+/* Animaciones de alto nivel (más sutiles) */
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Scrollbar moderno y delgado */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Scrollbar invisible hasta que se usa (estilo Apple) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
-::-webkit-scrollbar-track {
+
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-brand-red transition-colors;
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full hover:bg-gray-400 transition-colors;
+}
+
+/* Eliminar el estilo itálico de cualquier etiqueta que lo herede */
+address,
+em,
+i,
+cite,
+dfn {
+  font-style: normal;
 }

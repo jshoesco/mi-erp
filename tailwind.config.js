@@ -8,30 +8,25 @@ export default {
   theme: {
     extend: {
       colors: {
-        // PALETA JS SHOES
         brand: {
-          red: '#D50000',      // Rojo Marca (Acciones, Alertas, Precios)
-          dark: '#0F0F0F',     // Negro Profundo (Barra Lateral, Textos Fuertes)
-          gray: '#27272A',     // Gris Elegante (Hover, Fondos secundarios)
-          light: '#F3F4F6',    // Gris muy claro (Fondo general, para no usar blanco puro)
+          red: '#D50000',      // Rojo Principal
+          dark: '#0F0F0F',     // Negro Interfaz
+          gray: '#27272A',     // Gris Acciones
+          light: '#F3F4F6',    // Fondo General
+          surface: '#FFFFFF',  // Color de Tarjetas/Modales
         },
-        // Reemplazamos el 'indigo' (morado) por un gris azulado profesional o rojo
-        indigo: {
-          50: '#F8FAFC',
-          100: '#F1F5F9', // Gris muy suave
-          200: '#E2E8F0',
-          500: '#D50000', // TRUCO: Si algo pide indigo-500, saldrá ROJO.
-          600: '#B91C1C',
-          700: '#991B1B',
-        }
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'card': '0 2px 8px -2px rgba(0, 0, 0, 0.1)',
-        'float': '0 10px 30px -10px rgba(213, 0, 0, 0.2)', // Sombra roja suave
+        'card': '0 4px 20px -5px rgba(0, 0, 0, 0.05)',
+        'float': '0 10px 30px -10px rgba(213, 0, 0, 0.2)',
+      },
+      borderRadius: {
+        'capsule': '2rem',
+        'inner': '1.2rem',
       }
     },
   },

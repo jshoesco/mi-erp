@@ -1,65 +1,67 @@
 import React, { useState } from 'react';
-import Icon from '../../ui/Icon';
 import { db, collection, addDoc, updateDoc, deleteDoc, doc } from '../../../lib/firebase';
+import { TOKENS } from '../../../theme/constants';
+import { Input } from '../../ui/forms/Controls';
+import { Select } from '../../ui/forms/Select'; // <--- USAMOS EL NUEVO SELECT
+import { Button } from '../../ui/display/Button';
+import Icon from '../../ui/display/Icon';
+import { TextLabel, H3 } from '../../ui/display/Typography';
 
-const ProvidersManager = ({ providers = [], notify }) => {
-    const [newProv, setNewProv] = useState({ nombre: '', id_custom: '' });
+const ProvidersManager = ({ providers = [], lines = [], notify, mapping }) => {
+    const [newProv, setNewProv] = useState({ nombre: '', id_custom: '', lineas: [] });
+    const [loading, setLoading] = useState(false);
+    const collectionName = mapping?.coll_providers || 'proveedores';
 
     const handleAdd = async () => {
-        if (!newProv.nombre || !newProv.id_custom) return notify("Faltan datos", "error");
+        if (!newProv.nombre || !newProv.id_custom || newProv.lineas.length === 0)
+            return notify("Nombre, Prefijo y al menos una Línea son obligatorios", "error");
+
+        setLoading(true);
         try {
-            await addDoc(collection(db, 'proveedores'), {
-                nombre: newProv.nombre.toUpperCase(),
-                id_custom: newProv.id_custom.toUpperCase().slice(0, 3)
+            await addDoc(collection(db, collectionName), {
+                nombre: newProv.nombre.toUpperCase().trim(),
+                id_custom: newProv.id_custom.toUpperCase().trim().slice(0, 3),
+                lineas: newProv.lineas // Se guarda como Array
             });
-            setNewProv({ nombre: '', id_custom: '' });
-            notify("Proveedor agregado");
+            setNewProv({ nombre: '', id_custom: '', lineas: [] });
+            notify("Proveedor vinculado con éxito");
         } catch (e) { notify("Error al guardar", "error"); }
+        finally { setLoading(false); }
     };
 
     return (
-        <div className="space-y-6 animate-fade-in">
-            <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-3 sticky top-0 z-10 shadow-sm">
-                <input
-                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-dark transition-all"
-                    placeholder="NOMBRE PROVEEDOR"
-                    value={newProv.nombre}
-                    onChange={e => setNewProv({ ...newProv, nombre: e.target.value })}
-                />
-                <div className="flex gap-2">
-                    <input
-                        className="flex-1 bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-brand-dark transition-all"
-                        placeholder="SKU (3 LETRAS)"
-                        maxLength={3}
-                        value={newProv.id_custom}
-                        onChange={e => setNewProv({ ...newProv, id_custom: e.target.value })}
-                    />
-                    <button
-                        onClick={handleAdd}
-                        className="bg-brand-dark text-white px-8 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-gray-200 hover:scale-105 transition-transform"
-                    >
-                        Vincular
-                    </button>
+        <div className={`space-y-8 ${TOKENS.animation.fade}`}>
+            <div className={`bg-brand-light/30 ${TOKENS.spacing.card} ${TOKENS.radius.card} border border-brand-light space-y-6 shadow-inner`}>
+                <H3 className="text-brand-gray/50">Vincular Nuevo Aliado</H3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input label="Razón Social" value={newProv.nombre} onChange={e => setNewProv({ ...newProv, nombre: e.target.value })} />
+                    <Input label="Prefijo SKU" maxLength={3} value={newProv.id_custom} onChange={e => setNewProv({ ...newProv, id_custom: e.target.value })} />
                 </div>
+
+                <Select
+                    label="Líneas Autorizadas"
+                    isMulti={true} // <--- ACTIVAMOS EL MODO MÚLTIPLE
+                    options={lines.map(l => ({ label: l.nombre, value: l.nombre }))}
+                    value={newProv.lineas}
+                    onChange={(e) => setNewProv({ ...newProv, lineas: e.target.value })}
+                    placeholder="Selecciona una o varias líneas..."
+                />
+
+                <Button onClick={handleAdd} loading={loading} variant="brand" className="w-full h-12" icon="Plus">Vincular</Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 pt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {providers.map((p) => (
-                    <div key={p.id} className="p-4 bg-white border border-gray-100 rounded-2xl flex justify-between items-center shadow-sm hover:shadow-md transition-all">
-                        <div className="flex-1">
-                            <input
-                                className="font-black uppercase text-[11px] text-gray-900 focus:ring-0 border-none p-0 w-full bg-transparent"
-                                value={p.nombre || ''}
-                                onChange={e => updateDoc(doc(db, 'proveedores', p.id), { nombre: e.target.value.toUpperCase() })}
-                            />
-                            <div className="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-widest">SKU: {p.id_custom}</div>
+                    <div key={p.id} className={`bg-brand-surface p-6 ${TOKENS.radius.card} border border-brand-light flex justify-between items-center shadow-sm`}>
+                        <div className="space-y-1">
+                            <span className={TOKENS.text.h3}>{p.nombre}</span>
+                            <div className="flex flex-wrap gap-1">
+                                {p.lineas?.map(l => (
+                                    <span key={l} className="text-[8px] px-1.5 py-0.5 bg-brand-light text-brand-dark rounded font-bold">{l}</span>
+                                ))}
+                            </div>
                         </div>
-                        <button
-                            onClick={() => deleteDoc(doc(db, 'proveedores', p.id))}
-                            className="text-gray-300 hover:text-red-500 ml-4 transition-colors"
-                        >
-                            <Icon name="Trash" size={18} />
-                        </button>
+                        <button onClick={() => deleteDoc(doc(db, collectionName, p.id))} className="text-brand-gray/20 hover:text-brand-red"><Icon name="Trash2" size={18} /></button>
                     </div>
                 ))}
             </div>

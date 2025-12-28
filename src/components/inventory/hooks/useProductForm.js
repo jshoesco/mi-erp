@@ -1,21 +1,62 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 
 export const useProductForm = (initialData, isOpen, allProducts = []) => {
+    const originalSkuRef = useRef(initialData?.sku || null);
+
     const [formData, setFormData] = useState({
-        tipo: 'stock', linea: '', proveedor_uid: '', proveedor_nombre: '',
-        nombre: '', marca: '', modelo: '', sku: '', costo: '',
-        ganancia: '', precio: '', stock_actual: 0, ubicacion: '', imagen: ''
+        tipo: 'stock',
+        linea: '',
+        proveedor_uid: '',
+        proveedor_nombre: '',
+        sku: '',
+        nombre: '',
+        marca: '',
+        modelo: '',
+        costo: 0,
+        ganancia: 0,
+        precio: 0,
+        stock_actual: 0,
+        ubicacion: '',
+        imagen: '',
+        ...(initialData || {})
     });
 
-    const originalSkuRef = useRef(null);
+    // Resetear al abrir/cerrar o cambiar de producto
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(initialData ? { ...initialData } : {
+                tipo: 'stock', linea: '', proveedor_uid: '', proveedor_nombre: '',
+                sku: '', nombre: '', marca: '', modelo: '',
+                costo: 0, ganancia: 0, precio: 0, stock_actual: 0, ubicacion: '', imagen: ''
+            });
+            originalSkuRef.current = initialData?.sku || null;
+        }
+    }, [isOpen, initialData]);
 
+    // --- LÓGICA DE PRECIOS INTELIGENTE ---
+    const handlePricing = (field, value) => {
+        const val = Number(value) || 0;
+        setFormData(prev => {
+            const newState = { ...prev, [field]: val };
+            // Si cambia costo o ganancia, recalculamos precio
+            if (field === 'costo' || field === 'ganancia') {
+                newState.precio = Number(newState.costo || 0) + Number(newState.ganancia || 0);
+            }
+            return newState;
+        });
+    };
+
+    // --- AUTOCOMPLETADO DE MARCAS Y MODELOS (OPTIMIZADO) ---
     const availableBrands = useMemo(() => {
-        const brands = allProducts.map(p => p.marca?.toUpperCase()).filter(Boolean);
+        if (!allProducts.length) return [];
+        const brands = allProducts
+            .map(p => p.marca?.toUpperCase())
+            .filter(Boolean);
         return [...new Set(brands)].sort();
     }, [allProducts]);
 
     const availableModels = useMemo(() => {
-        if (!formData.marca) return [];
+        if (!formData.marca || !allProducts.length) return [];
         const models = allProducts
             .filter(p => p.marca?.toUpperCase() === formData.marca.toUpperCase())
             .map(p => p.modelo?.toUpperCase())
@@ -23,37 +64,12 @@ export const useProductForm = (initialData, isOpen, allProducts = []) => {
         return [...new Set(models)].sort();
     }, [formData.marca, allProducts]);
 
-    useEffect(() => {
-        if (isOpen) {
-            if (initialData) {
-                setFormData({ ...initialData, id: initialData.id });
-                originalSkuRef.current = initialData.sku;
-            } else {
-                setFormData({
-                    tipo: 'stock', linea: '', proveedor_uid: '', proveedor_nombre: '',
-                    nombre: '', marca: '', modelo: '', sku: '', costo: '',
-                    ganancia: '', precio: '', stock_actual: 0, ubicacion: '', imagen: ''
-                });
-                originalSkuRef.current = null;
-            }
-        }
-    }, [initialData, isOpen]);
-
-    const handlePricing = (field, value) => {
-        if (value === '' || value === null) {
-            setFormData(prev => ({ ...prev, [field]: '' }));
-            return;
-        }
-        const newValue = Number(value);
-        const currentCosto = Number(formData.costo || 0);
-        let updates = { [field]: newValue };
-        if (field === 'ganancia' && currentCosto > 0) updates.precio = currentCosto + newValue;
-        else if (field === 'precio' && currentCosto > 0) updates.ganancia = newValue - currentCosto;
-        setFormData(prev => ({ ...prev, ...updates }));
-    };
-
     return {
-        formData, setFormData, handlePricing,
-        originalSkuRef, availableBrands, availableModels
+        formData,
+        setFormData,
+        handlePricing,
+        originalSkuRef,
+        availableBrands,
+        availableModels
     };
 };

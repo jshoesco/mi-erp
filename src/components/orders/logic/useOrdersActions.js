@@ -60,5 +60,27 @@ export const useOrdersActions = () => {
             return false;
         }
     };
-    return { saveOrder };
+    const updateOrderLogistics = async (orderId, logisticsData) => {
+        try {
+            const orderRef = doc(db, DB.ORDERS, orderId);
+
+            // Si viene 'forceSplit', generamos un ID único que el Helper no pueda agrupar
+            const finalGroupId = logisticsData.forceSplit
+                ? `independent-acopio-${orderId}`
+                : logisticsData.groupId;
+
+            await updateDoc(orderRef, {
+                'logistics.groupId': finalGroupId,
+                'logistics.master_address': logisticsData.master_address || null,
+                'logistics.status': logisticsData.status || 'pago-pendiente',
+                updatedAt: serverTimestamp()
+            });
+            return true;
+        } catch (error) {
+            console.error("Error en updateOrderLogistics:", error);
+            throw error;
+        }
+    };
+
+    return { saveOrder, updateOrderLogistics };
 };

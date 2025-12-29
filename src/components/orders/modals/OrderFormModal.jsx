@@ -50,8 +50,10 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
     }, [orderToEdit, isOpen]);
 
     const handleSubmit = async () => {
-        const nombreValido = formData.cliente?.nombre?.trim();
-        const tieneItems = formData.items?.length > 0;
+        // Uso estricto de las constantes C y S definidas arriba
+        const clienteData = formData[C.ROOT];
+        const nombreValido = clienteData?.[C.NAME]?.trim();
+        const tieneItems = formData[S.ITEMS]?.length > 0;
 
         if (!nombreValido || !tieneItems) {
             return notify("Nombre del cliente e ítems son obligatorios", "error");
@@ -59,6 +61,7 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
 
         try {
             setIsSaving(true);
+            // Enviamos el objeto que ya está estructurado por el SCHEMA
             await saveOrder(formData);
             notify(orderToEdit ? "Pedido actualizado" : "Pedido registrado", "success");
             onClose();

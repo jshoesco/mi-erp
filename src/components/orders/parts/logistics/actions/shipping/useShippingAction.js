@@ -1,33 +1,30 @@
 import { db } from '../../../../../../lib/firebase';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { DB } from '../../../../../../constants/collections';
+import { SCHEMA } from '../../../../../../constants/schema';
 
 export const useShippingAction = (notify) => {
-    const assignGuide = async (orderIds, shippingData) => {
-        try {
-            const promises = orderIds.map(id =>
-                updateDoc(doc(db, DB.ORDERS, id), {
-                    'logistics.status': 'enviado',
-                    'logistics.shipping': {
-                        carrier: shippingData.carrier,
-                        guideNumber: shippingData.guideNumber,
-                        shippedAt: serverTimestamp(),
-                    },
-                    // Actualizamos también el campo legacy si lo usas en otras partes
-                    'envio.guia': shippingData.guideNumber,
-                    updatedAt: serverTimestamp()
-                })
-            );
+    const registerShipping = async (shippingData) => {
+        const batch = writeBatch(db);
+        const S = SCHEMA.ORDERS;
 
-            await Promise.all(promises);
-            notify?.('Guía asignada. Pedidos movidos a "Enviados".', 'success');
+        try {
+            shippingData.orders.forEach(order => {
+                const orderRef = doc(db, DB.ORDERS, order.id);
+                batch.update(orderRef, {
+                    'logistics.status': 'enviado',
+                    'logistics.guide_number': shippingData.guideNumber,
+                    'logistics.carrier': shippingData.carrier,
+                    [S.STATUS]: 'Enviado',
+                    updatedAt: serverTimestamp()
+                });
+            });
+            await batch.commit();
             return true;
         } catch (error) {
             console.error(error);
-            notify?.('Error al asignar guía', 'error');
             return false;
         }
     };
-
-    return { assignGuide };
+    return { registerShipping };
 };

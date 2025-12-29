@@ -24,6 +24,15 @@ export const useOrderItemsLogic = (items, setItems) => {
     }, [products, searchTerm, P]);
 
     const handleAddItem = (product) => {
+        // --- BLOQUE DE DIAGNÓSTICO BRUTAL ---
+        console.group("🔍 DIAGNÓSTICO DE PRODUCTO ENCONTRADO");
+        console.log("1. Objeto completo del Inventario:", product);
+        console.log("2. Llave buscada para SKU (P.SKU):", P.SKU, " -> Valor:", product[P.SKU]);
+        console.log("3. Llave buscada para PROVEEDOR (P.PROVIDER):", P.PROVIDER, " -> Valor:", product[P.PROVIDER]);
+        console.log("4. ¿Existe la llave directamente? 'proveedor_nombre' in product:", 'proveedor_nombre' in product);
+        console.groupEnd();
+        // ------------------------------------
+
         const newItem = {
             id: `${product[P.SKU] || 'no-sku'}-${Date.now()}`,
             [I.UNIQUE_ID]: crypto.randomUUID(),
@@ -34,7 +43,8 @@ export const useOrderItemsLogic = (items, setItems) => {
             [I.COST]: Number(product[P.COST] || 0),
             [I.PRICE]: Number(product[P.PRICE] || 0),
             [I.IMAGE]: product[P.IMAGE] || '',
-            // ESTRICTO SCHEMA: Busca la llave definida en SCHEMA.PRODUCTS en el objeto 'product'
+            
+            // ESTRICTO SCHEMA
             [I.PROVIDER]: product[P.PROVIDER] || 'SIN PROVEEDOR',
             [I.PROVIDER_ID]: product[P.PROVIDER_ID] || ''
         };
@@ -43,6 +53,28 @@ export const useOrderItemsLogic = (items, setItems) => {
         setSearchTerm('');
         setActiveIndex(null);
     };
+    
+    
+    // const handleAddItem = (product) => {
+    //     const newItem = {
+    //         id: `${product[P.SKU] || 'no-sku'}-${Date.now()}`,
+    //         [I.UNIQUE_ID]: crypto.randomUUID(),
+    //         [I.SKU]: product[P.SKU] || '',
+    //         [I.MODEL]: product[P.REF] || product[P.VERSION] || 'Sin especificar',
+    //         [I.TALLA]: '',
+    //         [I.QTY]: 1,
+    //         [I.COST]: Number(product[P.COST] || 0),
+    //         [I.PRICE]: Number(product[P.PRICE] || 0),
+    //         [I.IMAGE]: product[P.IMAGE] || '',
+    //         // ESTRICTO SCHEMA: Busca la llave definida en SCHEMA.PRODUCTS en el objeto 'product'
+    //         [I.PROVIDER]: product[P.PROVIDER] || 'SIN PROVEEDOR',
+    //         [I.PROVIDER_ID]: product[P.PROVIDER_ID] || ''
+    //     };
+
+    //     setItems([...items, newItem]);
+    //     setSearchTerm('');
+    //     setActiveIndex(null);
+    // };
 
     const handleUpdateItem = (id, fieldSchemaKey, value) => {
         setItems(items.map(it => {

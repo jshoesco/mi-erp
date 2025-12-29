@@ -54,5 +54,46 @@ export const SCHEMA = {
         TARIFF: 'tarifa',
         IS_ACOPIO: 'isAcopio',
         CARRIER: 'paqueteria'
+    },
+
+    FINANCES: {
+        ROOT: 'finanzas',
+        FLOW: 'flujo',         // 'ENTRADA' o 'SALIDA'
+        CATEGORY: 'categoria', // 'PAGO_PROVEEDOR', 'VENTA', 'ENVIO', 'APORTE_CAPITAL', 'GASTO_OPERATIVO'
+        AMOUNT: 'monto',
+        ORDER_ID: 'pedido_id',
+        GROUP_ID: 'lote_id',
+        PROVIDER_ID: 'proveedor_uid',
+        DATE: 'fecha_registro',
+        METHOD: 'metodo_pago', // 'TRANSFERENCIA', 'EFECTIVO'
+        DESCRIPTION: 'descripcion'
+    },
+    LOGISTICS: {
+        STATUS: {
+            PENDING: 'pago-pendiente',
+            READY: 'por-despachar',
+            SHIPPED: 'enviado'
+        },
+        ACTIONS: {
+            OPEN_JOIN: 'open_join',
+            PAY: 'pay',
+            GUIDE: 'guide',
+            SPLIT_ITEM: 'split_item',
+            UNVEIL_ORDER: 'unveiled_order',
+            UNVEIL_GROUP: 'unveiled_group',
+            OPEN_SWAP: 'OPEN_SWAP',
+        },
+        MODAL_KEYS: {
+            JOIN: 'join',
+            PAYMENT: 'payment',
+            SHIPPING: 'shipping',
+            SWAP: 'swap',
+        },
+        SWAP_FIELDS: {
+            HISTORY: 'swap_history',
+            PREVIOUS_SKU: 'previous_sku',
+            PREVIOUS_COST: 'previous_cost',
+            DATE: 'swap_date'
+        }
     }
 };

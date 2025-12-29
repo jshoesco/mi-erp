@@ -42,7 +42,6 @@ export const useOrdersActions = () => {
                     [C.CITY]: orderData[C.ROOT]?.[C.CITY] || '',
                     [C.ADDRESS]: orderData[C.ROOT]?.[C.ADDRESS] || '',
                     [C.TEL]: orderData[C.ROOT]?.[C.TEL] || '',
-                    [C.IS_ACOPIO]: orderData[C.ROOT]?.[C.IS_ACOPIO] || false
                 },
                 [S.ARCHIVED]: false,
                 updatedAt: serverTimestamp()

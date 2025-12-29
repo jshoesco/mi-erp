@@ -72,34 +72,6 @@ const CustomerSection = ({ form, setForm }) => {
                 value={form[C.ROOT]?.[C.ADDRESS] || ''}
                 onChange={(e) => updateClientField(C.ADDRESS, e.target.value)}
             />
-
-            {form[SCHEMA.ORDERS.CLIENT.ROOT]?.[SCHEMA.ORDERS.CLIENT.IS_ACOPIO] && (
-                <div className="col-span-2 flex items-center gap-4 bg-indigo-50 p-3 rounded-xl border border-indigo-100 animate-in fade-in zoom-in duration-300">
-                    <span className="text-[10px] font-black text-indigo-900 uppercase ml-2">Destino con Acopio:</span>
-                    <div className="flex bg-white p-1 rounded-lg border border-indigo-200 shadow-sm">
-                        <button
-                            type="button"
-                            onClick={() => setForm(prev => ({ ...prev, [SCHEMA.ORDERS.STRATEGY]: 'ACOPIO' }))}
-                            className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${form[SCHEMA.ORDERS.STRATEGY] === 'ACOPIO'
-                                    ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'text-indigo-400 hover:bg-indigo-50'
-                                }`}
-                        >
-                            MODO ACOPIO
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setForm(prev => ({ ...prev, [SCHEMA.ORDERS.STRATEGY]: 'DIRECTO' }))}
-                            className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${form[SCHEMA.ORDERS.STRATEGY] === 'DIRECTO'
-                                    ? 'bg-indigo-600 text-white shadow-md'
-                                    : 'text-indigo-400 hover:bg-indigo-50'
-                                }`}
-                        >
-                            ENVÍO DIRECTO
-                        </button>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

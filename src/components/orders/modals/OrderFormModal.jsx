@@ -20,14 +20,13 @@ const INITIAL_STATE = {
 const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
     const [formData, setFormData] = useState(INITIAL_STATE);
     const [isSaving, setIsSaving] = useState(false);
-
     const { saveOrder } = useOrdersActions();
     const { notify } = useUI();
 
     useEffect(() => {
         if (isOpen) {
             if (orderToEdit) {
-                // MAPEO 100% ESTRICTO AL SCHEMA
+                // MAPEO 100% ESTRICTO: Eliminamos IS_ACOPIO
                 setFormData({
                     id: orderToEdit.id,
                     [S.ID_ORDER]: orderToEdit[S.ID_ORDER] || '',
@@ -36,7 +35,6 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
                         [C.TEL]: orderToEdit[C.ROOT]?.[C.TEL] || '',
                         [C.ADDRESS]: orderToEdit[C.ROOT]?.[C.ADDRESS] || '',
                         [C.CITY]: orderToEdit[C.ROOT]?.[C.CITY] || '',
-                        [C.IS_ACOPIO]: orderToEdit[C.ROOT]?.[C.IS_ACOPIO] || false
                     },
                     [S.ITEMS]: orderToEdit[S.ITEMS] || [],
                     [S.SHIPPING_COST]: Number(orderToEdit[S.SHIPPING_COST] || 0),
@@ -50,7 +48,6 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
     }, [orderToEdit, isOpen]);
 
     const handleSubmit = async () => {
-        // Uso estricto de las constantes C y S definidas arriba
         const clienteData = formData[C.ROOT];
         const nombreValido = clienteData?.[C.NAME]?.trim();
         const tieneItems = formData[S.ITEMS]?.length > 0;
@@ -61,32 +58,15 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
 
         try {
             setIsSaving(true);
-            // Enviamos el objeto que ya está estructurado por el SCHEMA
             await saveOrder(formData);
             notify(orderToEdit ? "Pedido actualizado" : "Pedido registrado", "success");
             onClose();
         } catch (error) {
-            console.error("Error al guardar:", error);
             notify("Error al guardar el pedido", "error");
         } finally {
             setIsSaving(false);
         }
     };
-
-    const footerActions = (
-        <div className="flex gap-4">
-            <Button variant="ghost" onClick={onClose} disabled={isSaving}>
-                CANCELAR
-            </Button>
-            <Button
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="bg-brand-red text-white px-8"
-            >
-                {isSaving ? "PROCESANDO..." : (orderToEdit ? "GUARDAR CAMBIOS" : "REGISTRAR PEDIDO")}
-            </Button>
-        </div>
-    );
 
     return (
         <ModalLayout
@@ -94,13 +74,17 @@ const OrderFormModal = ({ isOpen, onClose, orderToEdit = null }) => {
             onClose={onClose}
             title={orderToEdit ? "Editar Orden" : "Nueva Orden de Venta"}
             size="max-w-5xl"
-            actions={footerActions}
+            actions={(
+                <div className="flex gap-4">
+                    <Button variant="ghost" onClick={onClose} disabled={isSaving}>CANCELAR</Button>
+                    <Button onClick={handleSubmit} disabled={isSaving} className="bg-brand-red text-white px-8">
+                        {isSaving ? "PROCESANDO..." : (orderToEdit ? "GUARDAR CAMBIOS" : "REGISTRAR PEDIDO")}
+                    </Button>
+                </div>
+            )}
         >
             <div className="py-4">
-                <OrderCreateForm
-                    formData={formData}
-                    setFormData={setFormData}
-                />
+                <OrderCreateForm formData={formData} setFormData={setFormData} />
             </div>
         </ModalLayout>
     );

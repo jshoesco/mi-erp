@@ -26,9 +26,7 @@ export const SCHEMA = {
             NAME: 'nombre',
             TEL: 'telefono',
             CITY: 'ciudad',
-            CITY_DELIVERY: 'ciudad_entrega',
             ADDRESS: 'direccion',
-            IS_ACOPIO: 'es_acopio'
         },
         ITEM: {
             SKU: 'sku',

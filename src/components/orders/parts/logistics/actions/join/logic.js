@@ -3,10 +3,6 @@ import { doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { DB } from '../../../../../../constants/collections';
 import { SCHEMA } from '../../../../../../constants/schema';
 
-/**
- * LÓGICA DE FILTRADO (VER)
- * Filtra qué pedidos son compatibles con el pedido base.
- */
 export const getJoinCandidates = (baseOrder, allOrders) => {
     if (!baseOrder || !allOrders) return [];
 
@@ -15,35 +11,37 @@ export const getJoinCandidates = (baseOrder, allOrders) => {
     const C = S.CLIENT;
     const I = S.ITEM;
 
-    // NORMALIZAMOS: Pasamos a mayúsculas para que 'acopio' sea igual a 'ACOPIO'
+    // Extraemos y limpiamos espacios para evitar errores de tipeo
     const baseProvider = baseOrder[S.ITEMS]?.[0]?.[I.PROVIDER];
-    const baseCity = (baseOrder[C.ROOT]?.[C.CITY_DELIVERY] || baseOrder[C.ROOT]?.[C.CITY])?.toUpperCase();
-    const baseStrategy = baseOrder[S.STRATEGY]?.toUpperCase(); // <--- NORMALIZADO
+    const baseCity = String(baseOrder[C.ROOT]?.[C.CITY] || '').trim();
+    const baseStrategy = String(baseOrder[S.STRATEGY] || '').trim();
 
     return allOrders.filter(o => {
         const isSelf = o.id === baseOrder.id;
         const hasGroup = !!o.logistics?.groupId;
 
-        // Comparación de Proveedor
+        // Si el status es undefined, permitimos que pase (isPending = true) 
+        // para evitar que el error de datos bloquee la operativa
+        const currentStatus = o.logistics?.status;
+        const isPending = !currentStatus || currentStatus === L.STATUS.PENDING;
+
+        if (isSelf || hasGroup || !isPending) return false;
+
+        // LEY 1: PROVEEDOR
         const matchProvider = o[S.ITEMS]?.[0]?.[I.PROVIDER] === baseProvider;
 
-        // Comparación de Ciudad (Normalizada)
-        const currentCity = (o[C.ROOT]?.[C.CITY_DELIVERY] || o[C.ROOT]?.[C.CITY])?.toUpperCase();
+        // LEY 2: CIUDAD (Limpiando espacios)
+        const currentCity = String(o[C.ROOT]?.[C.CITY] || '').trim();
         const matchCity = currentCity === baseCity;
 
-        // Comparación de Estrategia (Normalizada) - ESTO ARREGLA TU PROBLEMA
-        const matchStrategy = o[S.STRATEGY]?.toUpperCase() === baseStrategy;
+        // LEY 3: ESTRATEGIA (Limpiando espacios)
+        const currentStrategy = String(o[S.STRATEGY] || '').trim();
+        const matchStrategy = currentStrategy === baseStrategy;
 
-        const isPending = o.logistics?.status === L.STATUS.PENDING;
-
-        return !isSelf && !hasGroup && matchProvider && matchCity && matchStrategy && isPending;
+        return matchProvider && matchCity && matchStrategy;
     });
 };
 
-/**
- * LÓGICA DE EJECUCIÓN (HACER)
- * Impacta la base de datos para unir los pedidos seleccionados.
- */
 export const executeJoin = async (orders, masterAddress, notify) => {
     if (!orders || orders.length < 2) return false;
 

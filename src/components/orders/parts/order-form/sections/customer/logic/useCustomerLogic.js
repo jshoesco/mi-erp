@@ -106,15 +106,14 @@ export const useCustomerLogic = (form, setForm) => {
         setForm(prev => ({
             ...prev,
             [SCHEMA.ORDERS.SHIPPING_COST]: Number(city[SCHEMA.COVERAGE.TARIFF] || 0),
-            [SCHEMA.ORDERS.STRATEGY]: tieneAcopio ? 'ACOPIO' : 'DIRECTO', // Usa 'estrategia'
+            // Solo detectamos la estrategia inicial, no guardamos campos basura
+            [SCHEMA.ORDERS.STRATEGY]: tieneAcopio ? 'ACOPIO' : 'DIRECTO',
             [SCHEMA.ORDERS.CLIENT.ROOT]: {
                 ...prev[SCHEMA.ORDERS.CLIENT.ROOT],
                 [SCHEMA.ORDERS.CLIENT.CITY]: city[SCHEMA.COVERAGE.CITY],
-                [SCHEMA.ORDERS.CLIENT.IS_ACOPIO]: tieneAcopio // Usa 'es_acopio'
             },
             paqueteria: city[SCHEMA.COVERAGE.CARRIER] || 'Interrapidisimo'
         }));
-
         setTimeout(() => setActiveField(null), 50);
     };
 
@@ -124,10 +123,6 @@ export const useCustomerLogic = (form, setForm) => {
             ...prev,
             [C.ROOT]: { ...(prev[C.ROOT] || {}), [field]: value }
         }));
-    };
-
-    const setLogisticaModo = (modo) => {
-        setForm(prev => ({ ...prev, [S.STRATEGY]: modo }));
     };
 
     const handleBlur = useCallback(() => {
@@ -142,7 +137,6 @@ export const useCustomerLogic = (form, setForm) => {
         handleSelectClient,
         handleSelectCity,
         updateClientField,
-        setLogisticaModo,
         handleBlur
     };
 };

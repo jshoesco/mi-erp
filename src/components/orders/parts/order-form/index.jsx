@@ -1,48 +1,39 @@
 import React from 'react';
 import CustomerSection from './sections/customer';
+import StrategySection from './sections/strategy'; // LA PIEZA QUE FALTABA
 import ItemsEditor from './sections/items';
 import ProfitPreview from './sections/profit';
-import { useOrderFormLogic } from './logic/useOrderFormLogic';
 import { SCHEMA } from '../../../../constants/schema';
 
 const OrderCreateForm = ({ formData, setFormData }) => {
 
     const S = SCHEMA.ORDERS;
-    const C = S.CLIENT;
-
-    // Normalización estricta al SCHEMA antes de pasar al estado del formulario
-    const normalizedData = React.useMemo(() => {
-        if (!formData) return formData;
-        return {
-            ...formData,
-            [C.ROOT]: {
-                [C.NAME]: formData[C.ROOT]?.[C.NAME] || formData.cliente?.nombre || '',
-                [C.TEL]: formData[C.ROOT]?.[C.TEL] || formData.cliente?.telefono || '',
-                [C.CITY]: formData[C.ROOT]?.[C.CITY] || formData.ciudad || formData.cliente?.ciudad || '',
-                [C.ADDRESS]: formData[C.ROOT]?.[C.ADDRESS] || formData.cliente?.direccion || '',
-                [C.IS_ACOPIO]: formData[C.ROOT]?.[C.IS_ACOPIO] || formData.es_acopio || false
-            }
-        };
-    }, [formData]);
-
-    const logic = useOrderFormLogic(normalizedData, setFormData);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-10">
-            {/* SECCIÓN CLIENTE: Recibe el estado para que su propio especialista (useCustomerLogic) trabaje */}
+            {/* 1. QUIÉN: Sección de Cliente (Solo Datos de Contacto) */}
             <CustomerSection
                 form={formData}
                 setForm={setFormData}
             />
 
-            {/* SECCIÓN ITEMS: 100% Genérica */}
-            <ItemsEditor
-                items={formData.items || []}
-                setItems={(newItems) => setFormData(prev => ({ ...prev, items: newItems }))}
+            {/* 2. CÓMO: Nueva sección de Estrategia (Maneja su propia lógica) */}
+            <StrategySection
+                form={formData}
+                setForm={setFormData}
             />
 
-            {/* VISTA DE BENEFICIOS: Inteligencia Financiera en tiempo real */}
-            {(formData.items?.length > 0 || formData.ciudad) && (
+            {/* 3. QUÉ: Los productos */}
+            <ItemsEditor
+                items={formData[S.ITEMS] || []}
+                setItems={(newItems) => setFormData(prev => ({
+                    ...prev,
+                    [S.ITEMS]: newItems
+                }))}
+            />
+
+            {/* 4. FINANZAS: Solo si hay datos para calcular */}
+            {(formData[S.ITEMS]?.length > 0 || formData[SCHEMA.ORDERS.CLIENT.ROOT]?.[SCHEMA.ORDERS.CLIENT.CITY]) && (
                 <ProfitPreview formData={formData} />
             )}
         </div>

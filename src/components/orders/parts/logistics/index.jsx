@@ -1,32 +1,28 @@
 import React, { useState } from 'react';
-import { SCHEMA } from '../../../../constants/schema'; // IMPORTACIÓN OBLIGATORIA
+import { SCHEMA } from '../../../../constants/schema';
 import { useLogisticsLogic } from './logic/useLogisticsLogic';
 import TableView from './views/Table';
 import KanbanView from './views/kanban/index';
 import { Button } from '../../../ui/display/Button';
 import Icon from '../../../ui/display/Icon';
 
-// MODALES
-import JoinModal from './actions/join/JoinModal';
+// SOLO LO QUE ESTÁ VIVO Y FUNCIONA
 import { PaymentModal } from './actions/payments/PaymentModal';
 import { ShippingModal } from './actions/shipping/ShippingModal';
-import { SwapModal } from './actions/swap/SwapModal'; // <--- TE FALTABA ESTO
 
-// CEREBRO
+// CEREBRO PURIFICADO
 import { useLogisticsActions } from './logic/useLogisticsActions';
 
 const LogisticsView = ({ orders, search, ui }) => {
-    const L = SCHEMA.LOGISTICS; // Alias para limpieza
+    const L = SCHEMA.LOGISTICS;
 
     const [viewMode, setViewMode] = useState('table');
     const [activeGroup, setActiveGroup] = useState(null);
 
-    // 1. INICIALIZACIÓN CORRECTA DEL ESTADO
+    // ESTADO SIN RASTROS DE JOIN NI SPLIT
     const [modalState, setModalState] = useState({
-        [L.MODAL_KEYS.JOIN]: false,
         [L.MODAL_KEYS.PAYMENT]: false,
-        [L.MODAL_KEYS.SHIPPING]: false,
-        [L.MODAL_KEYS.SWAP]: false
+        [L.MODAL_KEYS.SHIPPING]: false
     });
 
     const { logisticsData } = useLogisticsLogic(orders, search);
@@ -46,26 +42,7 @@ const LogisticsView = ({ orders, search, ui }) => {
                 )}
             </main>
 
-            {/* MODALES ORQUESTADOS USANDO EL SCHEMA */}
-            {modalState[L.MODAL_KEYS.JOIN] && (
-                <JoinModal
-                    isOpen={modalState[L.MODAL_KEYS.JOIN]}
-                    onClose={() => setModalState(prev => ({ ...prev, [L.MODAL_KEYS.JOIN]: false }))}
-                    baseOrder={activeGroup}
-                    allOrders={orders}
-                    onConfirm={(data) => confirmModalAction(L.MODAL_KEYS.JOIN, data)}
-                />
-            )}
-
-            {modalState[L.MODAL_KEYS.SWAP] && (
-                <SwapModal
-                    isOpen={modalState[L.MODAL_KEYS.SWAP]}
-                    onClose={() => setModalState(prev => ({ ...prev, [L.MODAL_KEYS.SWAP]: false }))}
-                    activeGroup={activeGroup}
-                    onConfirm={(data) => confirmModalAction(L.MODAL_KEYS.SWAP, data, activeGroup)}
-                />
-            )}
-
+            {/* MODALES ACTIVOS */}
             {modalState[L.MODAL_KEYS.PAYMENT] && (
                 <PaymentModal
                     isOpen={modalState[L.MODAL_KEYS.PAYMENT]}

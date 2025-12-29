@@ -2,7 +2,8 @@ import React from 'react';
 import { useStrategyLogic } from './logic/useStrategyLogic';
 
 const StrategySection = ({ form, setForm }) => {
-    const { strategy, canSwitchMode, setModo } = useStrategyLogic(form, setForm);
+    // Recibimos VALS desde el hook
+    const { strategy, canSwitchMode, setModo, VALS } = useStrategyLogic(form, setForm);
 
     if (!canSwitchMode) return null;
 
@@ -14,16 +15,16 @@ const StrategySection = ({ form, setForm }) => {
             <div className="flex bg-white p-1 rounded-lg border border-indigo-200 shadow-sm">
                 <button
                     type="button"
-                    onClick={() => setModo('ACOPIO')}
-                    className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${strategy === 'ACOPIO' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400'
+                    onClick={() => setModo(VALS.ACOPIO)} // Envía 'acopio'
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${strategy === VALS.ACOPIO ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400'
                         }`}
                 >
                     MODO ACOPIO
                 </button>
                 <button
                     type="button"
-                    onClick={() => setModo('DIRECTO')}
-                    className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${strategy === 'DIRECTO' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400'
+                    onClick={() => setModo(VALS.DIRECTO)} // Envía 'directo'
+                    className={`px-4 py-1.5 rounded-md text-[10px] font-black transition-all ${strategy === VALS.DIRECTO ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-400'
                         }`}
                 >
                     ENVÍO DIRECTO

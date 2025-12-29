@@ -5,40 +5,35 @@ export const useOrderProfit = (formData) => {
     const S = SCHEMA.ORDERS;
     const I = S.ITEM;
 
-    const totals = useMemo(() => {
-        // 1. Extraemos usando estrictamente el SCHEMA
+    return useMemo(() => {
         const items = formData?.[S.ITEMS] || [];
-        const envio = Number(formData?.[S.SHIPPING_COST] || 0);
 
-        // 2. Ingresos Brutos (Venta Total) basado en SCHEMA
-        const subtotal = items.reduce((acc, item) => {
-            const qty = Math.max(0, Number(item[I.QTY] || 0));
-            const price = Number(item[I.PRICE] || 0);
-            return acc + (qty * price);
+        // Extraemos fletes usando SCHEMA
+        const costoEnvioEmpresa = Number(formData?.[S.SHIPPING_COST] || 0);
+        const envioCobradoCliente = Number(formData?.[S.PAYMENT_CLIENT] || 0); // O la llave que definas para el pago extra
+
+        // Ingresos por productos
+        const subtotalVenta = items.reduce((acc, item) => {
+            return acc + (Number(item[I.QTY] || 0) * Number(item[I.PRICE] || 0));
         }, 0);
 
-        // 3. Costos de Mercancía (COGS) basado en SCHEMA
-        const costoTotal = items.reduce((acc, item) => {
-            const qty = Math.max(0, Number(item[I.QTY] || 0));
-            const cost = Number(item[I.COST] || 0);
-            return acc + (qty * cost);
+        // Costos de productos
+        const costoTotalMercancia = items.reduce((acc, item) => {
+            return acc + (Number(item[I.QTY] || 0) * Number(item[I.COST] || 0));
         }, 0);
 
-        // 4. Utilidad Real (Venta - Costos - Envío)
-        const profit = subtotal - costoTotal - envio;
-
-        // 5. Margen en %
-        const margen = subtotal > 0 ? (profit / subtotal) * 100 : 0;
+        const totalIngresos = subtotalVenta + envioCobradoCliente;
+        const totalCostos = costoTotalMercancia + costoEnvioEmpresa;
+        const profit = totalIngresos - totalCostos;
+        const margen = totalIngresos > 0 ? (profit / totalIngresos) * 100 : 0;
 
         return {
-            subtotal,
-            envio,
-            costoTotal,
+            totalIngresos,
+            totalCostos,
             profit,
             margen,
-            total: subtotal 
+            esNegativo: profit < 0,
+            hasItems: items.length > 0
         };
-    }, [formData?.[S.ITEMS], formData?.[S.SHIPPING_COST], S, I]);
-
-    return totals;
+    }, [formData, S, I]);
 };

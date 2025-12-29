@@ -2,10 +2,12 @@ import { SCHEMA } from '../../../../../../../constants/schema';
 
 export const useStrategyLogic = (form, setForm) => {
     const S = SCHEMA.ORDERS;
+    const VALS = S.STRATEGY_VALUES;
 
-    // Solo se permite elegir si la ciudad original permitía acopio
-    // o si el pedido ya viene marcado como tal.
-    const canSwitchMode = form[S.STRATEGY] === 'ACOPIO' || form[S.STRATEGY] === 'DIRECTO';
+    const current = String(form[S.STRATEGY] || '').toLowerCase().trim();
+
+    // Ahora sí coincidirán porque ambos vienen del mismo SCHEMA
+    const canSwitchMode = current === VALS.ACOPIO || current === VALS.DIRECTO;
 
     const setModo = (modo) => {
         setForm(prev => ({
@@ -15,8 +17,9 @@ export const useStrategyLogic = (form, setForm) => {
     };
 
     return {
-        strategy: form[S.STRATEGY],
+        strategy: current,
         canSwitchMode,
-        setModo
+        setModo,
+        VALS
     };
 };

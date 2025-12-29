@@ -31,9 +31,13 @@ export const useCustomerLogic = (form, setForm) => {
                     setForm(prev => ({
                         ...prev,
                         [S.SHIPPING_COST]: tarifaVigente,
-                        [S.STRATEGY]: prev[S.STRATEGY] || (tieneAcopio ? 'ACOPIO' : 'DIRECTO'),
+
+                        // CORRECCIÓN: Nada de strings manuales 'ACOPIO'
+                        [S.STRATEGY]: prev[S.STRATEGY] || (tieneAcopio ? S.STRATEGY_VALUES.ACOPIO : S.STRATEGY_VALUES.DIRECTO),
+
                         [C.ROOT]: {
                             ...prev[C.ROOT],
+                            // Aquí puedes dejarlo o quitarlo según si usas IS_ACOPIO en cliente
                             [C.IS_ACOPIO]: tieneAcopio
                         }
                     }));
@@ -101,18 +105,18 @@ export const useCustomerLogic = (form, setForm) => {
     };
 
     const handleSelectCity = (city) => {
+        const S = SCHEMA.ORDERS;
+        const V = S.STRATEGY_VALUES;
         const tieneAcopio = city[SCHEMA.COVERAGE.IS_ACOPIO] || false;
 
         setForm(prev => ({
             ...prev,
-            [SCHEMA.ORDERS.SHIPPING_COST]: Number(city[SCHEMA.COVERAGE.TARIFF] || 0),
-            // Solo detectamos la estrategia inicial, no guardamos campos basura
-            [SCHEMA.ORDERS.STRATEGY]: tieneAcopio ? 'ACOPIO' : 'DIRECTO',
-            [SCHEMA.ORDERS.CLIENT.ROOT]: {
-                ...prev[SCHEMA.ORDERS.CLIENT.ROOT],
-                [SCHEMA.ORDERS.CLIENT.CITY]: city[SCHEMA.COVERAGE.CITY],
-            },
-            paqueteria: city[SCHEMA.COVERAGE.CARRIER] || 'Interrapidisimo'
+            [S.SHIPPING_COST]: Number(city[SCHEMA.COVERAGE.TARIFF] || 0),
+            [S.STRATEGY]: tieneAcopio ? V.ACOPIO : V.DIRECTO,
+            [S.CLIENT.ROOT]: {
+                ...prev[S.CLIENT.ROOT],
+                [S.CLIENT.CITY]: city[SCHEMA.COVERAGE.CITY],
+            }
         }));
         setTimeout(() => setActiveField(null), 50);
     };

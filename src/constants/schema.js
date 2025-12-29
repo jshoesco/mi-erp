@@ -15,6 +15,10 @@ export const SCHEMA = {
         ARCHIVED: 'is_archived',
         STATUS: 'estado',
         STRATEGY: 'estrategia',
+        STRATEGY_VALUES: {
+            ACOPIO: 'acopio',
+            DIRECTO: 'directo'
+        },
         DATE: 'fecha',
         ID_ORDER: 'id_visual',
         SHIPPING_COST: 'envio_precio',
